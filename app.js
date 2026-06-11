@@ -1,7 +1,7 @@
 // --- DATOS DEL MUNDIAL 2026 ---
 
 // python -m http.server 8000
-
+// ?admin=true 
 
 const TEAMS = {
     "MEX": { name: "México", flag: "mx" },
@@ -104,38 +104,65 @@ let activeProfileId = 0; // 0 a 4 (amigos), o 'real' (Resultados Reales)
 let activeGroupId = 'A';
 let activePhase = 'groups'; // 'groups' o 'knockouts'
 let activeKnockoutRound = 'R32'; // 'R32', 'R16', 'QF', 'SF', 'FINAL'
+let userRole = 'user'; // 'user' o 'admin'
 
 // --- INICIALIZACIÓN ---
 
-function initApp() {
-    // Intentar cargar de LocalStorage
+async function initApp() {
+    // 1. Determinar rol a partir del parámetro de URL (?admin=true o ?role=admin) o de LocalStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('admin') || urlParams.get('role') === 'admin') {
+        userRole = 'admin';
+        localStorage.setItem('wc2026_role', 'admin');
+    } else if (urlParams.get('admin') === 'false' || urlParams.get('role') === 'user') {
+        userRole = 'user';
+        localStorage.setItem('wc2026_role', 'user');
+    } else {
+        userRole = localStorage.getItem('wc2026_role') || 'user';
+    }
+
+    // 2. Intentar cargar de LocalStorage o del archivo JSON por defecto
     const savedProfiles = localStorage.getItem('wc2026_profiles');
     const savedRealResults = localStorage.getItem('wc2026_real_results');
+
+    if (savedProfiles) {
+        profiles = JSON.parse(savedProfiles);
+        if (savedRealResults) {
+            realResults = JSON.parse(savedRealResults);
+        } else {
+            realResults = {};
+        }
+        completeInit();
+    } else {
+        // Cargar de base de datos json
+        try {
+            const response = await fetch('predicciones_mundial2026.json');
+            const data = await response.json();
+            profiles = data.profiles || [];
+            realResults = data.realResults || {};
+            saveData();
+        } catch (error) {
+            console.error("Error al cargar predicciones por defecto:", error);
+            // Fallback clásico
+            const defaultNames = ["Ibra", "Ali", "Derdabi", "Chakron", "Afassi"];
+            profiles = defaultNames.map((name, index) => ({
+                id: index,
+                name: name,
+                predictions: {}
+            }));
+            realResults = {};
+        }
+        completeInit();
+    }
+}
+
+function completeInit() {
     const savedActiveProfile = localStorage.getItem('wc2026_active_profile');
     const savedActiveGroup = localStorage.getItem('wc2026_active_group');
     const savedActivePhase = localStorage.getItem('wc2026_active_phase');
     const savedActiveKnockoutRound = localStorage.getItem('wc2026_active_ko_round');
 
-    if (savedProfiles) {
-        profiles = JSON.parse(savedProfiles);
-    } else {
-        // Inicializar perfiles por defecto
-        const defaultNames = ["Ibra", "Ali", "Derdabi", "Chakron", "Afassi"];
-        profiles = defaultNames.map((name, index) => ({
-            id: index,
-            name: name,
-            predictions: {}
-        }));
-    }
-
-    if (savedRealResults) {
-        realResults = JSON.parse(savedRealResults);
-    } else {
-        realResults = {};
-    }
-
     if (savedActiveProfile !== null) {
-        // Puede ser número o string 'real'
         activeProfileId = savedActiveProfile === 'real' ? 'real' : parseInt(savedActiveProfile);
     } else {
         activeProfileId = 0;
@@ -190,11 +217,33 @@ function initApp() {
     // Registrar Eventos Básicos
     setupEventListeners();
 
+    // Aplicar restricciones de rol
+    applyRoleRestrictions();
+
     // Renders Iniciales
     renderProfileTabs();
     renderGroupTabs();
     renderMatches();
     updateLiveCalculations();
+}
+
+// Aplicar restricciones de rol (ocultar botones de edición para usuarios comunes)
+function applyRoleRestrictions() {
+    const btnEditProfiles = document.getElementById('btn-edit-profiles');
+    const btnBackup = document.getElementById('btn-backup');
+    
+    if (userRole !== 'admin') {
+        if (btnEditProfiles) btnEditProfiles.style.display = 'none';
+        if (btnBackup) btnBackup.style.display = 'none';
+        // Si el usuario por algún motivo estaba en la pestaña de 'real', lo devolvemos al perfil 0
+        if (activeProfileId === 'real') {
+            activeProfileId = 0;
+            saveData();
+        }
+    } else {
+        if (btnEditProfiles) btnEditProfiles.style.display = 'flex';
+        if (btnBackup) btnBackup.style.display = 'flex';
+    }
 }
 
 // Guardar datos
@@ -509,7 +558,7 @@ function renderProfileTabs() {
     adminTab.className = `profile-tab admin-tab ${activeProfileId === 'real' ? 'active' : ''}`;
     adminTab.innerHTML = `
         <span class="profile-name">Resultados Reales</span>
-        <span class="profile-role">Administrador</span>
+        ${userRole === 'admin' ? '<span class="profile-role">Administrador</span>' : ''}
     `;
     adminTab.addEventListener('click', () => {
         activeProfileId = 'real';
@@ -637,8 +686,8 @@ function renderMatches() {
         // Si es eliminatoria y empatan, se debe seleccionar el ganador de penaltis
         const isKnockout = activePhase === 'knockouts';
         const isDraw = val1 !== "" && val2 !== "" && parseInt(val1) === parseInt(val2);
-        const isHomeSelectable = isKnockout && isDraw && !homeTeam.isPlaceholder;
-        const isAwaySelectable = isKnockout && isDraw && !awayTeam.isPlaceholder;
+        const isHomeSelectable = isKnockout && isDraw && !homeTeam.isPlaceholder && userRole === 'admin';
+        const isAwaySelectable = isKnockout && isDraw && !awayTeam.isPlaceholder && userRole === 'admin';
 
         // Banderas
         const homeFlagImg = homeTeam.flag 
@@ -740,14 +789,16 @@ function renderMatches() {
                         value="${val1}" 
                         placeholder="-"
                         data-match-id="${match.id}" 
-                        data-team-pos="1">
+                        data-team-pos="1"
+                        ${userRole !== 'admin' ? 'disabled' : ''}>
                     <span class="score-divider">vs</span>
                     <input type="number" min="0" max="99" class="score-input" 
                         id="input-${match.id}-2" 
                         value="${val2}" 
                         placeholder="-"
                         data-match-id="${match.id}" 
-                        data-team-pos="2">
+                        data-team-pos="2"
+                        ${userRole !== 'admin' ? 'disabled' : ''}>
                 </div>
 
                 <!-- Visitante -->
