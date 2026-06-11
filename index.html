@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predicciones Mundial 2026</title>
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- CSS Estilos -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Contenedor Principal para Fondo Dinámico -->
+    <div class="app-background"></div>
+
+    <div class="app-container">
+        <!-- Cabecera de la Aplicación -->
+        <header class="app-header">
+            <div class="header-logo">
+                <span class="logo-emoji">🏆</span>
+                <div class="logo-text">
+                    <h1>Mundial 2026</h1>
+                    <p>Quiniela & Predicciones de Grupos</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="btn-edit-profiles" class="btn btn-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.5.5 0 0 1-.5-.5V9h-.5a.5.5 0 0 1-.5-.5V8h-.5a.5.5 0 0 1-.5-.5V7h-.5a.5.5 0 0 0-.146-.354L1.3 5.793V6.5a.5.5 0 0 1-.5.5H.5a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .146-.354l.5-.5a.5.5 0 0 1 .354-.146H1.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207L1.3 12H1.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l-.146.146zm-6 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 0-.708l.5-.5a.5.5 0 0 1 .708 0l.5.5a.5.5 0 0 1 0 .708z"/>
+                    </svg>
+                    <span>Editar Amigos</span>
+                </button>
+                <div class="dropdown">
+                    <button id="btn-backup" class="btn btn-secondary dropdown-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m.5-5v1.5a.5.5 0 0 1-1 0V11a.5.5 0 0 1 .146-.354l.5-.5a.5.5 0 0 1 .708 0l.5.5A.5.5 0 0 1 13 11m-8.5-2.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1H4.5a.5.5 0 0 1-.5-.5m.5 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1z"/>
+                            <path d="M13.5 1a1.5 1.5 0 0 1 1.5 1.5v8.5a1.5 1.5 0 0 1-1.5 1.5H11v-1h2.5a.5.5 0 0 0 .5-.5V2.5a.5.5 0 0 0-.5-.5H2.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 .5.5H5v1H2.5A1.5 1.5 0 0 1 1 11.5v-8.5A1.5 1.5 0 0 1 2.5 1H10V.5a.5.5 0 0 1 1 0V1z"/>
+                        </svg>
+                        <span>Datos</span>
+                    </button>
+                    <div class="dropdown-menu">
+                        <button id="btn-export" class="dropdown-item">Exportar Copia (JSON)</button>
+                        <label for="input-import" class="dropdown-item" style="cursor: pointer;">
+                            Importar Copia (JSON)
+                            <input type="file" id="input-import" accept=".json" style="display: none;">
+                        </label>
+                        <button id="btn-reset-all" class="dropdown-item danger">Reiniciar Todo</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Barra de Navegación de Perfiles -->
+        <nav class="profiles-navbar">
+            <div class="profiles-scroll" id="profiles-tabs-container">
+                <!-- Se generará dinámicamente -->
+            </div>
+        </nav>
+
+        <!-- Selector de Fase (Grupos / Eliminatorias) -->
+        <div class="phase-selector-wrapper">
+            <div class="phase-toggle-container">
+                <button id="btn-phase-groups" class="phase-toggle-btn active">Fase de Grupos</button>
+                <button id="btn-phase-knockouts" class="phase-toggle-btn">Fase Final (Eliminatorias)</button>
+            </div>
+        </div>
+
+        <!-- Contenido Principal -->
+        <main class="app-main">
+            <!-- Sidebar: Tabla de Clasificación de Amigos -->
+            <section class="sidebar-leaderboard">
+                <div class="glass-card">
+                    <div class="card-header">
+                        <h2>🏆 Clasificación General</h2>
+                        <span class="badge badge-gold" id="total-matches-count">0/72 part.</span>
+                    </div>
+                    <div class="leaderboard-table-container">
+                        <table class="leaderboard-table">
+                            <thead>
+                                <tr>
+                                    <th class="col-rank">Pos</th>
+                                    <th class="col-name">Amigo</th>
+                                    <th class="col-stats text-center">E/A/F</th>
+                                    <th class="col-points text-right">Pts</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-tbody">
+                                <!-- Se generará dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="leaderboard-legend">
+                        <span class="legend-item"><span class="bullet perfect"></span> E: Exacto (3 pts)</span>
+                        <span class="legend-item"><span class="bullet outcome"></span> A: Acierto (1 pt)</span>
+                        <span class="legend-item"><span class="bullet fail"></span> F: Fallo (0 pts)</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección de Predicciones y Grupos -->
+            <section class="predictions-content">
+                <!-- Selector de Grupos (Pestañas A-L) -->
+                <div class="group-selector-container" id="group-selector-container">
+                    <div class="group-tabs" id="group-tabs-container">
+                        <!-- Se generará dinámicamente (Grupo A al L) -->
+                    </div>
+                </div>
+
+                <!-- Selector de Rondas Eliminatorias (Dieciseisavos a Final) -->
+                <div class="knockout-selector-container" id="knockout-selector-container" style="display: none;">
+                    <div class="group-tabs" id="knockout-tabs-container">
+                        <button class="group-tab active" data-round="R32">Dieciseisavos (R32)</button>
+                        <button class="group-tab" data-round="R16">Octavos (R16)</button>
+                        <button class="group-tab" data-round="QF">Cuartos</button>
+                        <button class="group-tab" data-round="SF">Semifinales</button>
+                        <button class="group-tab" data-round="FINAL">Finales</button>
+                    </div>
+                </div>
+
+                <div class="grid-content" id="grid-content">
+                    <!-- Columna Partidos -->
+                    <div class="matches-column">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <h2 id="selected-group-title">Grupo A - Partidos</h2>
+                                <span class="badge" id="predictions-progress-badge">0/6 Pronosticados</span>
+                            </div>
+                            <div class="matches-list" id="matches-list-container">
+                                <!-- Tarjetas de partidos se generarán dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna Clasificación del Grupo Seleccionado -->
+                    <div class="group-standing-column">
+                        <div class="glass-card">
+                            <div class="card-header">
+                                <h2>📊 Clasificación del Grupo</h2>
+                                <span class="badge" id="standing-profile-name">Perfil actual</span>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="standing-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Pos</th>
+                                            <th class="text-left">Equipo</th>
+                                            <th>PJ</th>
+                                            <th>G</th>
+                                            <th>E</th>
+                                            <th>P</th>
+                                            <th>GF</th>
+                                            <th>GC</th>
+                                            <th>DG</th>
+                                            <th>Pts</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="group-standing-tbody">
+                                        <!-- Se generará dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="standing-rules-note">
+                                <p>Criterios de desempate simulados: 1. Puntos, 2. Diferencia de goles, 3. Goles a favor.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para Editar Perfiles -->
+    <div id="modal-edit-profiles" class="modal-overlay">
+        <div class="modal-content glass-card">
+            <div class="modal-header">
+                <h2>Editar Nombres de Amigos</h2>
+                <button class="btn-close-modal" id="btn-close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-edit-profiles">
+                    <div class="form-group">
+                        <label for="profile-name-0">Perfil 1 (Tú):</label>
+                        <input type="text" id="profile-name-0" class="form-input" required maxlength="15">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-name-1">Perfil 2:</label>
+                        <input type="text" id="profile-name-1" class="form-input" required maxlength="15">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-name-2">Perfil 3:</label>
+                        <input type="text" id="profile-name-2" class="form-input" required maxlength="15">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-name-3">Perfil 4:</label>
+                        <input type="text" id="profile-name-3" class="form-input" required maxlength="15">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-name-4">Perfil 5:</label>
+                        <input type="text" id="profile-name-4" class="form-input" required maxlength="15">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="btn-cancel-profiles" class="btn btn-secondary">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Aplicación -->
+    <script src="app.js"></script>
+</body>
+</html>
