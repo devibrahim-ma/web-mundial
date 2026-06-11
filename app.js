@@ -121,39 +121,38 @@ async function initApp() {
         userRole = localStorage.getItem('wc2026_role') || 'user';
     }
 
-    // 2. Intentar cargar de LocalStorage o del archivo JSON por defecto
-    const savedProfiles = localStorage.getItem('wc2026_profiles');
-    const savedRealResults = localStorage.getItem('wc2026_real_results');
+    // 2. Cargar datos
+    if (userRole === 'admin') {
+        // El administrador usa LocalStorage para poder guardar y editar de forma persistente
+        const savedProfiles = localStorage.getItem('wc2026_profiles');
+        const savedRealResults = localStorage.getItem('wc2026_real_results');
 
-    if (savedProfiles) {
-        profiles = JSON.parse(savedProfiles);
-        if (savedRealResults) {
-            realResults = JSON.parse(savedRealResults);
-        } else {
-            realResults = {};
+        if (savedProfiles) {
+            profiles = JSON.parse(savedProfiles);
+            realResults = savedRealResults ? JSON.parse(savedRealResults) : {};
+            completeInit();
+            return;
         }
-        completeInit();
-    } else {
-        // Cargar de base de datos json
-        try {
-            const response = await fetch('predicciones_mundial2026.json');
-            const data = await response.json();
-            profiles = data.profiles || [];
-            realResults = data.realResults || {};
-            saveData();
-        } catch (error) {
-            console.error("Error al cargar predicciones por defecto:", error);
-            // Fallback clásico
-            const defaultNames = ["Ibra", "Ali", "Derdabi", "Chakron", "Afassi"];
-            profiles = defaultNames.map((name, index) => ({
-                id: index,
-                name: name,
-                predictions: {}
-            }));
-            realResults = {};
-        }
-        completeInit();
     }
+
+    // Para usuarios comunes (o admin sin datos previos), siempre cargar el JSON fresco
+    try {
+        const response = await fetch('predicciones_mundial2026.json');
+        const data = await response.json();
+        profiles = data.profiles || [];
+        realResults = data.realResults || {};
+    } catch (error) {
+        console.error("Error al cargar predicciones por defecto:", error);
+        // Fallback clásico
+        const defaultNames = ["Ibra", "Ali", "Derdabi", "Chakron", "Afassi"];
+        profiles = defaultNames.map((name, index) => ({
+            id: index,
+            name: name,
+            predictions: {}
+        }));
+        realResults = {};
+    }
+    completeInit();
 }
 
 function completeInit() {
@@ -248,8 +247,10 @@ function applyRoleRestrictions() {
 
 // Guardar datos
 function saveData() {
-    localStorage.setItem('wc2026_profiles', JSON.stringify(profiles));
-    localStorage.setItem('wc2026_real_results', JSON.stringify(realResults));
+    if (userRole === 'admin') {
+        localStorage.setItem('wc2026_profiles', JSON.stringify(profiles));
+        localStorage.setItem('wc2026_real_results', JSON.stringify(realResults));
+    }
     localStorage.setItem('wc2026_active_profile', activeProfileId);
     localStorage.setItem('wc2026_active_group', activeGroupId);
     localStorage.setItem('wc2026_active_phase', activePhase);
