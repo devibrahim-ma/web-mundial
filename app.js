@@ -1,7 +1,7 @@
 // --- DATOS DEL MUNDIAL 2026 ---
 
 // python -m http.server 8000
-// ?admin=true 
+// https://web-mundial-lake.vercel.app/?admin=true 
 
 const TEAMS = {
     "MEX": { name: "México", flag: "mx" },

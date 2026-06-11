@@ -1471,5 +1471,10 @@
       }
     }
   ],
-  "realResults": {}
+  "realResults": {
+    "A-1": {
+      "score1": 2,
+      "score2": 0
+    }
+  }
 }
