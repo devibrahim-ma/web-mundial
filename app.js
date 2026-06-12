@@ -2,7 +2,13 @@
 
 // python -m http.server 8000
 // https://web-mundial-lake.vercel.app/?admin=true 
+/*
 
+git add .
+git commit -m "Actualizados resultados reales del mundial"
+git push
+npx vercel --prod
+*/
 const TEAMS = {
     "MEX": { name: "México", flag: "mx" },
     "RSA": { name: "Sudáfrica", flag: "za" },
@@ -96,6 +102,22 @@ GROUP_IDS.forEach(groupId => {
     ];
 });
 
+// --- CONFIGURACIÓN DE FIREBASE ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDQw_ch8DPslkeH07G0V4yf5_IflUyy408",
+  authDomain: "web-mundial-2026.firebaseapp.com",
+  databaseURL: "https://web-mundial-2026-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "web-mundial-2026",
+  storageBucket: "web-mundial-2026.firebasestorage.app",
+  messagingSenderId: "931472206945",
+  appId: "1:931472206945:web:0816e89360fe4e3a968e20",
+  measurementId: "G-29HD6KQ14S"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 // --- ESTADO DE LA APLICACIÓN ---
 
 let profiles = [];
@@ -105,6 +127,7 @@ let activeGroupId = 'A';
 let activePhase = 'groups'; // 'groups' o 'knockouts'
 let activeKnockoutRound = 'R32'; // 'R32', 'R16', 'QF', 'SF', 'FINAL'
 let userRole = 'user'; // 'user' o 'admin'
+let isInitialized = false;
 
 // --- INICIALIZACIÓN ---
 
@@ -121,38 +144,50 @@ async function initApp() {
         userRole = localStorage.getItem('wc2026_role') || 'user';
     }
 
-    // 2. Cargar datos
-    if (userRole === 'admin') {
-        // El administrador usa LocalStorage para poder guardar y editar de forma persistente
-        const savedProfiles = localStorage.getItem('wc2026_profiles');
-        const savedRealResults = localStorage.getItem('wc2026_real_results');
-
-        if (savedProfiles) {
-            profiles = JSON.parse(savedProfiles);
-            realResults = savedRealResults ? JSON.parse(savedRealResults) : {};
-            completeInit();
-            return;
-        }
-    }
-
-    // Para usuarios comunes (o admin sin datos previos), siempre cargar el JSON fresco
+    // 2. Cargar JSON local como respaldo de inicialización si Firebase estuviese vacío
+    let localBackup = null;
     try {
         const response = await fetch('predicciones_mundial2026.json');
-        const data = await response.json();
-        profiles = data.profiles || [];
-        realResults = data.realResults || {};
-    } catch (error) {
-        console.error("Error al cargar predicciones por defecto:", error);
-        // Fallback clásico
-        const defaultNames = ["Ibra", "Ali", "Derdabi", "Chakron", "Afassi"];
-        profiles = defaultNames.map((name, index) => ({
-            id: index,
-            name: name,
-            predictions: {}
-        }));
-        realResults = {};
+        localBackup = await response.json();
+    } catch (e) {
+        console.error("Error al cargar predicciones locales de respaldo:", e);
     }
-    completeInit();
+
+    // 3. Cargar datos en tiempo real de Firebase
+    db.ref('mundial_data').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            profiles = data.profiles || [];
+            realResults = data.realResults || {};
+        } else if (localBackup) {
+            profiles = localBackup.profiles || [];
+            realResults = localBackup.realResults || {};
+            // Si el admin entra por primera vez y Firebase está vacío, subir el JSON local
+            if (userRole === 'admin') {
+                db.ref('mundial_data').set({ profiles, realResults });
+            }
+        } else {
+            const defaultNames = ["Ibra", "Ali", "Derdabi", "Chakron", "Afassi"];
+            profiles = defaultNames.map((name, index) => ({
+                id: index,
+                name: name,
+                predictions: {}
+            }));
+            realResults = {};
+        }
+
+        // Evitar duplicar listeners de eventos al recibir actualizaciones en tiempo real
+        if (!isInitialized) {
+            isInitialized = true;
+            completeInit();
+        } else {
+            // Re-renderizar todo con los nuevos datos recibidos
+            renderProfileTabs();
+            renderGroupTabs();
+            renderMatches();
+            updateLiveCalculations();
+        }
+    });
 }
 
 function completeInit() {
@@ -248,8 +283,12 @@ function applyRoleRestrictions() {
 // Guardar datos
 function saveData() {
     if (userRole === 'admin') {
-        localStorage.setItem('wc2026_profiles', JSON.stringify(profiles));
-        localStorage.setItem('wc2026_real_results', JSON.stringify(realResults));
+        db.ref('mundial_data').set({
+            profiles: profiles,
+            realResults: realResults
+        }).catch(err => {
+            console.error("Error al guardar en Firebase: ", err);
+        });
     }
     localStorage.setItem('wc2026_active_profile', activeProfileId);
     localStorage.setItem('wc2026_active_group', activeGroupId);
