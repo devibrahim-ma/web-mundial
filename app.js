@@ -138,10 +138,10 @@ const FRIEND_THEMES = {
         bgImage: "assets/theme_es.png",
         gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 234, 0, 0.12) 0%, transparent 50%), #07080f"
     },
-    1: { // Ali (Países Bajos y Senegal - Temática: Países Bajos)
-        flags: ["nl", "sn"],
-        bgImage: "assets/theme_nl.png",
-        gradient: "radial-gradient(circle at 10% 20%, rgba(255, 61, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 50%), #05060b"
+    1: { // Ali (España y Portugal - Temática: España)
+        flags: ["es", "pt"],
+        bgImage: "assets/theme_es.png",
+        gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 234, 0, 0.12) 0%, transparent 50%), #07080f"
     },
     2: { // Derdabi (Marruecos y Portugal - Temática: Marruecos)
         flags: ["ma", "pt"],
