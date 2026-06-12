@@ -131,6 +131,35 @@ const PROFILE_AVATARS = {
     4: "assets/afassi.jpeg"                   // Perfil 5 (Afassi)
 };
 
+// --- CONFIGURACIÓN DE SELECCIONES Y FONDOS ---
+const FRIEND_THEMES = {
+    0: { // Ibra (España y Japón - Temática: España)
+        flags: ["es", "jp"],
+        bgImage: "assets/theme_es.png",
+        gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 234, 0, 0.12) 0%, transparent 50%), #07080f"
+    },
+    1: { // Ali (Países Bajos y Senegal - Temática: Países Bajos)
+        flags: ["nl", "sn"],
+        bgImage: "assets/theme_nl.png",
+        gradient: "radial-gradient(circle at 10% 20%, rgba(255, 61, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.08) 0%, transparent 50%), #05060b"
+    },
+    2: { // Derdabi (Marruecos y Portugal - Temática: Marruecos)
+        flags: ["ma", "pt"],
+        bgImage: "assets/theme_ma.png",
+        gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(0, 200, 83, 0.12) 0%, transparent 50%), #06070c"
+    },
+    3: { // Chakron (España y Curazao - Temática: España)
+        flags: ["es", "cw"],
+        bgImage: "assets/theme_es.png",
+        gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 234, 0, 0.12) 0%, transparent 50%), #07080f"
+    },
+    4: { // Afassi (España y Argentina - Temática: España)
+        flags: ["es", "ar"],
+        bgImage: "assets/theme_es.png",
+        gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 234, 0, 0.12) 0%, transparent 50%), #07080f"
+    }
+};
+
 let realResults = {};
 let activeProfileId = 0; // 0 a 4 (amigos), o 'real' (Resultados Reales)
 let activeGroupId = 'A';
@@ -267,8 +296,7 @@ function completeInit() {
     // Renders Iniciales
     renderProfileTabs();
     renderGroupTabs();
-    renderMatches();
-    updateLiveCalculations();
+    updateActiveProfileUI();
 }
 
 // Aplicar restricciones de rol (ocultar botones de edición para usuarios comunes)
@@ -598,8 +626,21 @@ function renderProfileTabs() {
         
         const avatarUrl = PROFILE_AVATARS[profile.id] || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(profile.name)}`;
         
+        const theme = FRIEND_THEMES[profile.id];
+        let flagsHTML = '';
+        if (theme && theme.flags) {
+            flagsHTML = `
+                <span class="profile-flags">
+                    ${theme.flags.map(f => `<img class="mini-flag" src="https://flagcdn.com/w20/${f}.png" alt="">`).join('')}
+                </span>
+            `;
+        }
+
         tab.innerHTML = `
-            <span class="profile-name">${escapeHTML(profile.name)}</span>
+            <span class="profile-name">
+                ${escapeHTML(profile.name)}
+                ${flagsHTML}
+            </span>
             <div class="avatar-container">
                 <img class="profile-avatar" src="${avatarUrl}" alt="${escapeHTML(profile.name)}">
             </div>
@@ -641,6 +682,25 @@ function updateActiveProfileUI() {
             tab.className = `profile-tab admin-tab ${activeProfileId === 'real' ? 'active' : ''}`;
         }
     });
+
+    // Cambiar fondo según la selección del perfil
+    const bgElement = document.querySelector('.app-background');
+    if (bgElement) {
+        if (activeProfileId === 'real') {
+            // Fondo original de la Copa del Mundo
+            bgElement.style.background = "radial-gradient(circle at 10% 20%, rgba(93, 0, 235, 0.15) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(0, 200, 83, 0.12) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(24, 42, 122, 0.18) 0%, transparent 60%), #05060b";
+        } else if (FRIEND_THEMES[activeProfileId]) {
+            const theme = FRIEND_THEMES[activeProfileId];
+            if (theme.bgImage) {
+                // Superponer gradiente oscuro + imagen para legibilidad
+                bgElement.style.background = `linear-gradient(rgba(6, 7, 12, 0.84), rgba(6, 7, 12, 0.84)), url('${theme.bgImage}')`;
+                bgElement.style.backgroundSize = "cover";
+                bgElement.style.backgroundPosition = "center";
+            } else {
+                bgElement.style.background = theme.gradient;
+            }
+        }
+    }
 
     // Cambiar clases en el contenedor principal si estamos en modo admin
     if (activeProfileId === 'real') {
@@ -1015,6 +1075,7 @@ function updateSingleMatchFeedback(matchId, score1, score2) {
 
 function updateLiveCalculations() {
     renderLeaderboard();
+    updateGroupStats();
     
     // Cambiar layout de columnas según la fase activa
     const gridContent = document.getElementById('grid-content');
@@ -1047,6 +1108,16 @@ function renderLeaderboard() {
 
         const avatarUrl = PROFILE_AVATARS[row.id] || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(row.name)}`;
 
+        const theme = FRIEND_THEMES[row.id];
+        let flagsHTML = '';
+        if (theme && theme.flags) {
+            flagsHTML = `
+                <span class="profile-flags">
+                    ${theme.flags.map(f => `<img class="mini-flag" src="https://flagcdn.com/w20/${f}.png" alt="">`).join('')}
+                </span>
+            `;
+        }
+
         tr.innerHTML = `
             <td class="col-rank">
                 <span class="rank-number">${index + 1}</span>
@@ -1054,7 +1125,7 @@ function renderLeaderboard() {
             <td class="col-name">
                 <div class="leaderboard-user-cell">
                     <img class="leaderboard-avatar" src="${avatarUrl}" alt="${escapeHTML(row.name)}">
-                    <span title="${escapeHTML(row.name)}">${escapeHTML(row.name)}</span>
+                    <span title="${escapeHTML(row.name)}">${escapeHTML(row.name)} ${flagsHTML}</span>
                 </div>
             </td>
             <td class="col-stats text-center">
@@ -1619,6 +1690,67 @@ function setupMusicPlayer() {
             toggleBtn.innerHTML = '<span>🔊</span>';
         }
     });
+}
+
+// --- ACTUALIZAR ESTADÍSTICAS DEL GRUPO (Opción 4) ---
+function updateGroupStats() {
+    const container = document.getElementById('group-stats-container');
+    if (!container) return;
+
+    const scores = calculateScores();
+    if (scores.length === 0) return;
+
+    // Buscar máximos
+    let maxPerfect = -1;
+    let perfectLeader = '';
+    let maxOutcome = -1;
+    let outcomeLeader = '';
+    let totalGoals = 0;
+
+    // Calcular goles totales pronosticados
+    profiles.forEach(p => {
+        if (p.predictions) {
+            Object.values(p.predictions).forEach(pred => {
+                if (pred && pred.score1 !== null && pred.score1 !== undefined && pred.score1 !== "") {
+                    totalGoals += parseInt(pred.score1);
+                }
+                if (pred && pred.score2 !== null && pred.score2 !== undefined && pred.score2 !== "") {
+                    totalGoals += parseInt(pred.score2);
+                }
+            });
+        }
+    });
+
+    scores.forEach(row => {
+        if (row.perfect > maxPerfect) {
+            maxPerfect = row.perfect;
+            perfectLeader = row.name;
+        } else if (row.perfect === maxPerfect && maxPerfect > 0) {
+            perfectLeader += ` y ${row.name}`;
+        }
+
+        if (row.outcome > maxOutcome) {
+            maxOutcome = row.outcome;
+            outcomeLeader = row.name;
+        } else if (row.outcome === maxOutcome && maxOutcome > 0) {
+            outcomeLeader += ` y ${row.name}`;
+        }
+    });
+
+    container.innerHTML = `
+        <div class="stat-item">
+            <span class="stat-label">Rey del Pleno (+3 pts):</span>
+            <span class="stat-value">${maxPerfect > 0 ? `${perfectLeader} (${maxPerfect})` : 'Ninguno'}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Más Aciertos (+1 pt):</span>
+            <span class="stat-value">${maxOutcome > 0 ? `${outcomeLeader} (${maxOutcome})` : 'Ninguno'}</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">Goles Pronosticados:</span>
+            <span class="stat-value">${totalGoals} goles</span>
+        </div>
+    `;
 }
 
 // --- AUXILIARES ---
