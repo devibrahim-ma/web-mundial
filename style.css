@@ -1,36 +1,44 @@
 /* --- SISTEMA DE DISEÑO & VARIABLES --- */
 :root {
     --font-primary: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    
+
     /* Colores Basados en la Paleta del Mundial 2026 */
     --color-bg-base: #06070c;
-    --color-primary: #5d00eb; /* Púrpura oficial */
+    --color-primary: #5d00eb;
+    /* Púrpura oficial */
     --color-primary-hover: #4a00be;
     --color-secondary: rgba(255, 255, 255, 0.06);
     --color-secondary-hover: rgba(255, 255, 255, 0.12);
-    
-    --color-gold: #ffea00; /* Amarillo eléctrico de la paleta */
+
+    --color-gold: #ffea00;
+    /* Amarillo eléctrico de la paleta */
     --color-gold-hover: #e2ce00;
-    
+
     --color-text-main: #f8f9fa;
     --color-text-muted: #9fa7bc;
     --color-text-dark: #0d0e15;
-    
+
     /* Estados y colores de la paleta */
-    --color-success: #00c853; /* Verde vibrante */
-    --color-warning: #ff3d00; /* Naranja rojizo */
-    --color-danger: #d50000; /* Rojo */
-    --color-info: #00e5ff; /* Cyan/Celeste */
-    --color-purple-light: #9d7cff; /* Púrpura claro */
-    --color-magenta: #d81b60; /* Magenta */
-    
+    --color-success: #00c853;
+    /* Verde vibrante */
+    --color-warning: #ff3d00;
+    /* Naranja rojizo */
+    --color-danger: #d50000;
+    /* Rojo */
+    --color-info: #00e5ff;
+    /* Cyan/Celeste */
+    --color-purple-light: #9d7cff;
+    /* Púrpura claro */
+    --color-magenta: #d81b60;
+    /* Magenta */
+
     /* Efecto Glass */
     --glass-bg: rgba(13, 15, 28, 0.45);
     --glass-bg-hover: rgba(13, 15, 28, 0.65);
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-border-focus: rgba(255, 255, 255, 0.25);
     --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
-    
+
     --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -40,6 +48,12 @@
     padding: 0;
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 body {
@@ -60,7 +74,7 @@ body {
     width: 100%;
     height: 100%;
     z-index: -2;
-    background: 
+    background:
         radial-gradient(circle at 10% 20%, rgba(93, 0, 235, 0.15) 0%, transparent 45%),
         radial-gradient(circle at 90% 80%, rgba(0, 200, 83, 0.12) 0%, transparent 50%),
         radial-gradient(circle at 50% 50%, rgba(24, 42, 122, 0.18) 0%, transparent 60%),
@@ -79,20 +93,21 @@ body {
     transform: translateX(-50%);
     width: 80%;
     height: 60%;
-    background: radial-gradient(ellipse at center, rgba(0, 229, 255, 0.12) 0%, rgba(0,0,0,0) 70%);
+    background: radial-gradient(ellipse at center, rgba(0, 229, 255, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
     z-index: -1;
     pointer-events: none;
 }
 
 .app-container {
     width: 100%;
-    max-width: 1400px;
+    max-width: 1760px;
     margin: 0 auto;
     padding: 20px;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     gap: 20px;
+    overflow-x: hidden !important;
 }
 
 /* --- HEADER --- */
@@ -135,8 +150,15 @@ body {
 }
 
 @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-5px);
+    }
 }
 
 .logo-text h1 {
@@ -224,7 +246,7 @@ body {
     border: 1px solid var(--glass-border);
     border-radius: 12px;
     min-width: 180px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     z-index: 2000;
     padding: 8px 0;
     overflow: hidden;
@@ -236,8 +258,15 @@ body {
 }
 
 @keyframes fadeInSlideUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .dropdown-item {
@@ -283,11 +312,13 @@ body {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    scrollbar-width: none; /* Firefox */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
 .profiles-scroll::-webkit-scrollbar {
-    display: none; /* Safari / Chrome */
+    display: none;
+    /* Safari / Chrome */
 }
 
 .profile-tab {
@@ -399,12 +430,13 @@ body {
     border-color: rgba(252, 196, 25, 0.25);
 }
 
-/* --- ESTRUCTURA PRINCIPAL (SIDEBAR + MAIN) --- */
 .app-main {
     display: grid;
     grid-template-columns: 320px 1fr;
     gap: 20px;
     align-items: start;
+    min-width: 0;
+    width: 100%;
 }
 
 /* --- SIDEBAR: LEADERBOARD --- */
@@ -424,7 +456,7 @@ body {
     border-collapse: collapse;
 }
 
-.leaderboard-table th, 
+.leaderboard-table th,
 .leaderboard-table td {
     padding: 12px 10px;
     font-size: 0.85rem;
@@ -484,7 +516,8 @@ tr:nth-child(2) .rank-number {
 
 tr:nth-child(3) .rank-number {
     background: linear-gradient(135deg, #e599f7, #d0bfff);
-    color: #212529; /* Bronce claro */
+    color: #212529;
+    /* Bronce claro */
     font-weight: 800;
 }
 
@@ -535,9 +568,17 @@ tr:nth-child(3) .rank-number {
     display: inline-block;
 }
 
-.bullet.perfect { background-color: var(--color-success); }
-.bullet.outcome { background-color: var(--color-gold); }
-.bullet.fail { background-color: rgba(255, 255, 255, 0.2); }
+.bullet.perfect {
+    background-color: var(--color-success);
+}
+
+.bullet.outcome {
+    background-color: var(--color-gold);
+}
+
+.bullet.fail {
+    background-color: rgba(255, 255, 255, 0.2);
+}
 
 /* --- SELECTOR DE GRUPOS (Pestañas A-L) --- */
 .group-selector-container {
@@ -596,6 +637,13 @@ tr:nth-child(3) .rank-number {
     grid-template-columns: 1fr 400px;
     gap: 20px;
     align-items: start;
+    min-width: 0;
+    width: 100%;
+}
+
+.predictions-content {
+    min-width: 0;
+    width: 100%;
 }
 
 /* --- LISTA DE PARTIDOS --- */
@@ -636,12 +684,12 @@ tr:nth-child(3) .rank-number {
     gap: 10px;
 }
 
-/* Bloque del Equipo (Banderas y Nombre) */
 .match-team {
     display: flex;
     align-items: center;
     gap: 10px;
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 .match-team.team-home {
@@ -661,7 +709,7 @@ tr:nth-child(3) .rank-number {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
+    max-width: 160px;
 }
 
 .flag-icon {
@@ -702,6 +750,7 @@ tr:nth-child(3) .rank-number {
     -webkit-appearance: none;
     margin: 0;
 }
+
 .score-input[type=number] {
     -moz-appearance: textfield;
 }
@@ -942,7 +991,7 @@ tr:nth-child(3) .rank-number {
 
 .form-input {
     width: 100%;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--glass-border);
     border-radius: 10px;
     padding: 10px 14px;
@@ -966,50 +1015,103 @@ tr:nth-child(3) .rank-number {
 }
 
 /* --- RESPONSIVIDAD (MEDIA QUERIES) --- */
-@media (max-width: 1100px) {
+@media (max-width: 1340px) {
     .grid-content {
         grid-template-columns: 1fr;
     }
+
     .group-standing-column {
-        order: 2; /* Pone los partidos arriba, y la clasificación del grupo abajo */
+        order: 2;
+        /* Pone los partidos arriba, y la clasificación del grupo abajo */
     }
 }
 
-@media (max-width: 850px) {
+@media (max-width: 980px) {
     .app-main {
         grid-template-columns: 1fr;
     }
+
     .sidebar-leaderboard {
         position: static;
-        order: -1; /* Muestra la clasificación de amigos al principio */
+        order: -1;
+        /* Muestra la clasificación de amigos al principio */
     }
 }
 
 @media (max-width: 600px) {
+    .app-container {
+        padding: 10px;
+        gap: 12px;
+    }
+
+    .glass-card {
+        padding: 15px;
+    }
+
     .app-header {
         flex-direction: column;
         gap: 15px;
         align-items: stretch;
         text-align: center;
     }
-    
+
     .header-logo {
         position: static;
         transform: none;
         flex-direction: column;
         gap: 5px;
     }
-    
+
     .header-actions {
         justify-content: center;
     }
-    
+
     .profile-tab {
         min-width: 100px;
         padding: 8px 10px;
         font-size: 0.85rem;
     }
 }
+
+/* Ajustes específicos para móviles muy pequeños */
+@media (max-width: 520px) {
+    .match-main-row {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+        width: 100%;
+    }
+
+    .match-team {
+        width: 100%;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+    }
+
+    .match-team.team-home {
+        flex-direction: row-reverse !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    .match-team.team-away {
+        flex-direction: row !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    .team-name {
+        max-width: none;
+    }
+
+    .match-score-inputs {
+        justify-content: center;
+        width: 100%;
+        margin: 5px 0;
+    }
+}
+
 
 /* --- ESTILOS DE LA FASE FINAL / ELIMINATORIAS --- */
 
@@ -1082,7 +1184,8 @@ tr:nth-child(3) .rank-number {
 }
 
 .match-team.team-home.penalty-winner::after {
-    order: -1; /* Pone la estrella antes del nombre en el equipo local */
+    order: -1;
+    /* Pone la estrella antes del nombre en el equipo local */
     margin-left: 0;
     margin-right: 6px;
 }
@@ -1114,8 +1217,13 @@ tr:nth-child(3) .rank-number {
 }
 
 @keyframes rotateBall {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Watermark de balón flotante en el fondo de la página */
@@ -1136,8 +1244,15 @@ body::before {
 }
 
 @keyframes floatBall {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-20px) rotate(15deg); }
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-20px) rotate(15deg);
+    }
 }
 
 /* Contenedor de foto de perfil (Avatar) */
@@ -1372,4 +1487,3 @@ body::before {
     font-weight: 700;
     color: #fff;
 }
-
