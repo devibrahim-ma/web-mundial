@@ -2,32 +2,34 @@
 :root {
     --font-primary: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     
-    /* Colores */
-    --color-bg-base: #0a0d0c;
-    --color-primary: #12b886; /* Verde esmeralda */
-    --color-primary-hover: #0ca678;
-    --color-secondary: rgba(255, 255, 255, 0.08);
-    --color-secondary-hover: rgba(255, 255, 255, 0.15);
+    /* Colores Basados en la Paleta del Mundial 2026 */
+    --color-bg-base: #06070c;
+    --color-primary: #5d00eb; /* Púrpura oficial */
+    --color-primary-hover: #4a00be;
+    --color-secondary: rgba(255, 255, 255, 0.06);
+    --color-secondary-hover: rgba(255, 255, 255, 0.12);
     
-    --color-gold: #fcc419; /* Oro Copa */
-    --color-gold-hover: #fab005;
+    --color-gold: #ffea00; /* Amarillo eléctrico de la paleta */
+    --color-gold-hover: #e2ce00;
     
     --color-text-main: #f8f9fa;
-    --color-text-muted: #adb5bd;
-    --color-text-dark: #212529;
+    --color-text-muted: #9fa7bc;
+    --color-text-dark: #0d0e15;
     
-    /* Estados */
-    --color-success: #2b8a3e;
-    --color-warning: #e67e22;
-    --color-danger: #e03131;
-    --color-info: #1971c2;
+    /* Estados y colores de la paleta */
+    --color-success: #00c853; /* Verde vibrante */
+    --color-warning: #ff3d00; /* Naranja rojizo */
+    --color-danger: #d50000; /* Rojo */
+    --color-info: #00e5ff; /* Cyan/Celeste */
+    --color-purple-light: #9d7cff; /* Púrpura claro */
+    --color-magenta: #d81b60; /* Magenta */
     
     /* Efecto Glass */
-    --glass-bg: rgba(255, 255, 255, 0.03);
-    --glass-bg-hover: rgba(255, 255, 255, 0.06);
-    --glass-border: rgba(255, 255, 255, 0.07);
-    --glass-border-focus: rgba(255, 255, 255, 0.2);
-    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    --glass-bg: rgba(13, 15, 28, 0.45);
+    --glass-bg-hover: rgba(13, 15, 28, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-border-focus: rgba(255, 255, 255, 0.25);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
     
     --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -50,7 +52,7 @@ body {
     line-height: 1.5;
 }
 
-/* Fondo dinámico (el usuario podrá cambiar la imagen de fondo de body o de este div) */
+/* Fondo dinámico */
 .app-background {
     position: fixed;
     top: 0;
@@ -58,7 +60,11 @@ body {
     width: 100%;
     height: 100%;
     z-index: -2;
-    background: radial-gradient(circle at 50% 10%, #162f25 0%, #080b09 100%);
+    background: 
+        radial-gradient(circle at 10% 20%, rgba(93, 0, 235, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(0, 200, 83, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(24, 42, 122, 0.18) 0%, transparent 60%),
+        #05060b;
     background-size: cover;
     background-position: center;
     transition: var(--transition-smooth);
@@ -73,7 +79,7 @@ body {
     transform: translateX(-50%);
     width: 80%;
     height: 60%;
-    background: radial-gradient(ellipse at center, rgba(18, 184, 134, 0.15) 0%, rgba(0,0,0,0) 70%);
+    background: radial-gradient(ellipse at center, rgba(0, 229, 255, 0.12) 0%, rgba(0,0,0,0) 70%);
     z-index: -1;
     pointer-events: none;
 }
@@ -95,20 +101,31 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 15px 24px;
+    position: relative;
+    z-index: 1000;
+    transition: var(--transition-smooth);
+}
+
+.app-header.admin-header {
     background: var(--glass-bg);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--glass-border);
     border-radius: 20px;
     box-shadow: var(--glass-shadow);
-    position: relative;
-    z-index: 1000;
 }
 
 .header-logo {
     display: flex;
     align-items: center;
     gap: 15px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.header-actions {
+    margin-left: auto;
 }
 
 .logo-emoji {
@@ -299,9 +316,9 @@ body {
 
 .profile-tab.active {
     color: #fff;
-    background: rgba(18, 184, 134, 0.15);
-    border-color: rgba(18, 184, 134, 0.3);
-    box-shadow: 0 4px 15px rgba(18, 184, 134, 0.1);
+    background: rgba(93, 0, 235, 0.12);
+    border-color: rgba(93, 0, 235, 0.3);
+    box-shadow: 0 4px 15px rgba(93, 0, 235, 0.15);
 }
 
 .profile-tab .profile-role {
@@ -570,7 +587,7 @@ tr:nth-child(3) .rank-number {
     color: #fff;
     background: var(--color-primary);
     border-color: var(--color-primary);
-    box-shadow: 0 4px 12px rgba(18, 184, 134, 0.2);
+    box-shadow: 0 4px 12px rgba(93, 0, 235, 0.25);
 }
 
 /* --- GRID DE CONTENIDO (Partidos y Clasificación del Grupo) --- */
@@ -691,8 +708,8 @@ tr:nth-child(3) .rank-number {
 
 .score-input:focus {
     border-color: var(--color-primary);
-    background: rgba(18, 184, 134, 0.05);
-    box-shadow: 0 0 10px rgba(18, 184, 134, 0.15);
+    background: rgba(93, 0, 235, 0.05);
+    box-shadow: 0 0 10px rgba(93, 0, 235, 0.15);
 }
 
 /* Estado de los inputs en modo Resultados Reales */
@@ -977,6 +994,8 @@ tr:nth-child(3) .rank-number {
     }
     
     .header-logo {
+        position: static;
+        transform: none;
         flex-direction: column;
         gap: 5px;
     }
@@ -1072,5 +1091,227 @@ tr:nth-child(3) .rank-number {
     color: var(--color-text-muted);
     font-style: italic;
     opacity: 0.6;
+}
+
+/* --- ESTILOS DE BALÓN Y FOTOS DE PERFIL --- */
+
+/* Contenedor del balón en el logo */
+.logo-ball-container {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo-ball {
+    width: 44px;
+    height: 44px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 12px rgba(0, 229, 255, 0.4));
+    animation: rotateBall 12s linear infinite;
+}
+
+@keyframes rotateBall {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Watermark de balón flotante en el fondo de la página */
+body::before {
+    content: '';
+    position: fixed;
+    bottom: -100px;
+    right: -100px;
+    width: 450px;
+    height: 450px;
+    background-image: url('ball.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: -1;
+    animation: floatBall 20s ease-in-out infinite;
+}
+
+@keyframes floatBall {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(15deg); }
+}
+
+/* Contenedor de foto de perfil (Avatar) */
+.avatar-container {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: rgba(13, 15, 28, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+    transition: var(--transition-smooth);
+}
+
+.profile-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: var(--transition-smooth);
+}
+
+/* Estilos de pestaña activa */
+.profile-tab.active .avatar-container {
+    border-color: var(--color-info);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+.profile-tab.admin-tab.active .avatar-container {
+    border-color: #0d0e15;
+    box-shadow: 0 0 10px rgba(255, 234, 0, 0.4);
+}
+
+.admin-avatar-container {
+    height: 50px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: rgba(13, 15, 28, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 8px;
+    transition: var(--transition-smooth);
+    padding: 2px;
+}
+
+.admin-avatar-container img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    border-radius: 6px;
+    transition: var(--transition-smooth);
+}
+
+.profile-tab.admin-tab.active .admin-avatar-container {
+    border-color: var(--color-gold);
+    box-shadow: 0 0 10px rgba(255, 234, 0, 0.4);
+}
+
+.profile-tab:hover .profile-avatar,
+.profile-tab.active .profile-avatar,
+.profile-tab:hover .admin-avatar-container img,
+.profile-tab.active .admin-avatar-container img {
+    transform: scale(1.08);
+}
+
+/* Fila de edición de perfiles en el modal */
+.profile-edit-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+
+.profile-edit-row:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.modal-content {
+    max-width: 650px !important;
+}
+
+/* Avatars en la tabla de clasificación (Leaderboard) */
+.leaderboard-user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.leaderboard-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(13, 15, 28, 0.6);
+    object-fit: cover;
+}
+
+/* --- REPRODUCTOR DE MÚSICA DE FONDO --- */
+.music-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--glass-border);
+    padding: 6px 12px;
+    border-radius: 12px;
+    height: 42px;
+}
+
+.music-controls .btn {
+    padding: 4px 8px;
+    font-size: 0.95rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.volume-slider {
+    width: 60px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-image: url('ball.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+    transition: var(--transition-smooth);
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: none;
+    background-image: url('ball.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+    transition: var(--transition-smooth);
+}
+
+.volume-slider::-webkit-slider-thumb:hover,
+.volume-slider::-moz-range-thumb:hover {
+    transform: scale(1.2) rotate(15deg);
+}
+
+/* Ocultar barra de volumen en móviles */
+@media (max-width: 600px) {
+    .volume-slider {
+        display: none;
+    }
 }
 

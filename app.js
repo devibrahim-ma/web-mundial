@@ -121,6 +121,16 @@ const db = firebase.database();
 // --- ESTADO DE LA APLICACIÓN ---
 
 let profiles = [];
+
+// --- FOTOS DE PERFIL DE LOS JUGADORES (Edita las rutas aquí directamente) ---
+const PROFILE_AVATARS = {
+    0: "assets/ibra.jpeg",  // Perfil 1 (Ibra)
+    1: "assets/ali.jpeg",   // Perfil 2 (Ali)
+    2: "assets/derdabi.jpeg",                  // Perfil 3 (Derdabi)
+    3: "assets/chakron.jpeg",                  // Perfil 4 (Chakron)
+    4: "assets/afassi.jpeg"                   // Perfil 5 (Afassi)
+};
+
 let realResults = {};
 let activeProfileId = 0; // 0 a 4 (amigos), o 'real' (Resultados Reales)
 let activeGroupId = 'A';
@@ -265,10 +275,12 @@ function completeInit() {
 function applyRoleRestrictions() {
     const btnEditProfiles = document.getElementById('btn-edit-profiles');
     const btnBackup = document.getElementById('btn-backup');
+    const header = document.querySelector('.app-header');
     
     if (userRole !== 'admin') {
         if (btnEditProfiles) btnEditProfiles.style.display = 'none';
         if (btnBackup) btnBackup.style.display = 'none';
+        if (header) header.classList.remove('admin-header');
         // Si el usuario por algún motivo estaba en la pestaña de 'real', lo devolvemos al perfil 0
         if (activeProfileId === 'real') {
             activeProfileId = 0;
@@ -277,6 +289,7 @@ function applyRoleRestrictions() {
     } else {
         if (btnEditProfiles) btnEditProfiles.style.display = 'flex';
         if (btnBackup) btnBackup.style.display = 'flex';
+        if (header) header.classList.add('admin-header');
     }
 }
 
@@ -582,8 +595,14 @@ function renderProfileTabs() {
     profiles.forEach(profile => {
         const tab = document.createElement('button');
         tab.className = `profile-tab ${activeProfileId === profile.id ? 'active' : ''}`;
+        
+        const avatarUrl = PROFILE_AVATARS[profile.id] || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(profile.name)}`;
+        
         tab.innerHTML = `
             <span class="profile-name">${escapeHTML(profile.name)}</span>
+            <div class="avatar-container">
+                <img class="profile-avatar" src="${avatarUrl}" alt="${escapeHTML(profile.name)}">
+            </div>
         `;
         tab.addEventListener('click', () => {
             activeProfileId = profile.id;
@@ -598,6 +617,9 @@ function renderProfileTabs() {
     adminTab.className = `profile-tab admin-tab ${activeProfileId === 'real' ? 'active' : ''}`;
     adminTab.innerHTML = `
         <span class="profile-name">Resultados Reales</span>
+        <div class="admin-avatar-container">
+            <img class="profile-avatar admin-avatar" src="icono.png" alt="Admin">
+        </div>
         ${userRole === 'admin' ? '<span class="profile-role">Administrador</span>' : ''}
     `;
     adminTab.addEventListener('click', () => {
@@ -1023,12 +1045,17 @@ function renderLeaderboard() {
             tr.className = 'active-user-row';
         }
 
+        const avatarUrl = PROFILE_AVATARS[row.id] || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(row.name)}`;
+
         tr.innerHTML = `
             <td class="col-rank">
                 <span class="rank-number">${index + 1}</span>
             </td>
             <td class="col-name">
-                <span title="${escapeHTML(row.name)}">${escapeHTML(row.name)}</span>
+                <div class="leaderboard-user-cell">
+                    <img class="leaderboard-avatar" src="${avatarUrl}" alt="${escapeHTML(row.name)}">
+                    <span title="${escapeHTML(row.name)}">${escapeHTML(row.name)}</span>
+                </div>
             </td>
             <td class="col-stats text-center">
                 ${row.perfect} / ${row.outcome} / ${row.fail}
@@ -1477,8 +1504,8 @@ function setupEventListeners() {
     btnEditProfiles.addEventListener('click', () => {
         // Rellenar campos de texto con nombres actuales
         profiles.forEach(p => {
-            const input = document.getElementById(`profile-name-${p.id}`);
-            if (input) input.value = p.name;
+            const inputName = document.getElementById(`profile-name-${p.id}`);
+            if (inputName) inputName.value = p.name;
         });
         modal.classList.add('open');
     });
@@ -1497,9 +1524,9 @@ function setupEventListeners() {
         e.preventDefault();
         
         profiles.forEach(p => {
-            const input = document.getElementById(`profile-name-${p.id}`);
-            if (input && input.value.trim() !== "") {
-                p.name = input.value.trim();
+            const inputName = document.getElementById(`profile-name-${p.id}`);
+            if (inputName && inputName.value.trim() !== "") {
+                p.name = inputName.value.trim();
             }
         });
 
@@ -1549,6 +1576,48 @@ function setupEventListeners() {
             renderMatches();
             updateLiveCalculations();
         });
+    });
+
+    // Inicializar reproductor de música de fondo
+    setupMusicPlayer();
+}
+
+// --- REPRODUCTOR DE MÚSICA ---
+function setupMusicPlayer() {
+    const music = document.getElementById('bg-music');
+    const toggleBtn = document.getElementById('btn-music-toggle');
+    const volumeSlider = document.getElementById('slider-music-volume');
+
+    if (!music || !toggleBtn || !volumeSlider) return;
+
+    // Configurar volumen inicial
+    music.volume = volumeSlider.value;
+
+    // Activar / Mutear
+    toggleBtn.addEventListener('click', () => {
+        if (music.paused) {
+            music.play().then(() => {
+                toggleBtn.innerHTML = '<span>🔊</span>';
+            }).catch(err => {
+                console.log("El navegador bloqueó el inicio rápido: ", err);
+            });
+        } else {
+            music.pause();
+            toggleBtn.innerHTML = '<span>🔇</span>';
+        }
+    });
+
+    // Cambiar volumen
+    volumeSlider.addEventListener('input', (e) => {
+        const val = e.target.value;
+        music.volume = val;
+        
+        // Si el volumen se baja a cero, cambiar icono a muteado
+        if (parseFloat(val) === 0) {
+            toggleBtn.innerHTML = '<span>🔇</span>';
+        } else if (music.paused === false) {
+            toggleBtn.innerHTML = '<span>🔊</span>';
+        }
     });
 }
 
