@@ -140,7 +140,7 @@ export async function checkAndFetchApiResults(force = false) {
             state.apiSyncStatus = `Sincronizado a las ${dateStr}`;
             
             // Subir a Firebase los cambios calculados
-            window.firebase.database().ref('mundial_data').update({
+            window.firebase.database().ref('mundial_global').update({
                 realResults: state.realResults,
                 lastApiFetchTime: state.lastApiFetchTime,
                 apiSyncStatus: state.apiSyncStatus
@@ -149,7 +149,7 @@ export async function checkAndFetchApiResults(force = false) {
     } catch (error) {
         console.error("Error en sincronización:", error);
         state.apiSyncStatus = `Error: ${error.message}`;
-        window.firebase.database().ref('mundial_data').update({ apiSyncStatus: state.apiSyncStatus });
+        window.firebase.database().ref('mundial_global').update({ apiSyncStatus: state.apiSyncStatus });
     }
     updateApiStatusUI();
 }

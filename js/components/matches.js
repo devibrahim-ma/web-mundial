@@ -281,6 +281,9 @@ export function renderMatches() {
             }
         }
 
+        const isEditable = (state.activeProfileId === 'real' && state.userRole === 'admin') || 
+                           (state.myProfileId !== null && state.activeProfileId === state.myProfileId);
+
         const card = document.createElement('div');
         card.className = `match-card ${ (val1 !== "" && val2 !== "") ? 'has-prediction' : ''}`;
         card.id = `card-${match.id}`;
@@ -389,7 +392,7 @@ export function renderMatches() {
                         placeholder="-"
                         data-match-id="${match.id}" 
                         data-team-pos="1"
-                        ${state.userRole !== 'admin' ? 'disabled' : ''}>
+                        ${isEditable ? '' : 'disabled'}>
                     <span class="score-divider">vs</span>
                     <input type="number" min="0" max="99" class="score-input" 
                         id="input-${match.id}-2" 
@@ -397,7 +400,7 @@ export function renderMatches() {
                         placeholder="-"
                         data-match-id="${match.id}" 
                         data-team-pos="2"
-                        ${state.userRole !== 'admin' ? 'disabled' : ''}>
+                        ${isEditable ? '' : 'disabled'}>
                 </div>
 
                 <div class="${awayTeamClass}">

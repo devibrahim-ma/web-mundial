@@ -101,13 +101,7 @@ export const firebaseConfig = {
   measurementId: "G-29HD6KQ14S"
 };
 
-export const PROFILE_AVATARS = {
-    0: "assets/ibra.jpeg",
-    1: "assets/ali.jpeg",
-    2: "assets/derdabi.jpeg",
-    3: "assets/chakron.jpeg",
-    4: "assets/afassi.jpeg"
-};
+export const PROFILE_AVATARS = {};
 
 export const FRIEND_THEMES = {
     0: { // Ibra

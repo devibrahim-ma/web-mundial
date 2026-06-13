@@ -1,4 +1,7 @@
 export const state = {
+    groupId: null,
+    myProfileId: null,
+    groupName: "",
     profiles: [],
     realResults: {},
     activeProfileId: 0,
@@ -18,24 +21,29 @@ export const state = {
 
 
 export function saveStateToLocalStorage() {
-    localStorage.setItem('wc2026_active_profile', state.activeProfileId);
-    localStorage.setItem('wc2026_active_group', state.activeGroupId);
-    localStorage.setItem('wc2026_active_phase', state.activePhase);
-    localStorage.setItem('wc2026_active_ko_round', state.activeKnockoutRound);
+    if (state.groupId) {
+        localStorage.setItem(`wc2026_active_profile_${state.groupId}`, state.activeProfileId);
+        localStorage.setItem(`wc2026_active_group_${state.groupId}`, state.activeGroupId);
+        localStorage.setItem(`wc2026_active_phase_${state.groupId}`, state.activePhase);
+        localStorage.setItem(`wc2026_active_ko_round_${state.groupId}`, state.activeKnockoutRound);
+    }
 }
 
 export function loadStateFromLocalStorage() {
-    const savedActiveProfile = localStorage.getItem('wc2026_active_profile');
-    const savedActiveGroup = localStorage.getItem('wc2026_active_group');
-    const savedActivePhase = localStorage.getItem('wc2026_active_phase');
-    const savedActiveKnockoutRound = localStorage.getItem('wc2026_active_ko_round');
+    if (!state.groupId) return;
+    
+    const savedActiveProfile = localStorage.getItem(`wc2026_active_profile_${state.groupId}`);
+    const savedActiveGroup = localStorage.getItem(`wc2026_active_group_${state.groupId}`);
+    const savedActivePhase = localStorage.getItem(`wc2026_active_phase_${state.groupId}`);
+    const savedActiveKnockoutRound = localStorage.getItem(`wc2026_active_ko_round_${state.groupId}`);
 
     if (savedActiveProfile !== null) {
         state.activeProfileId = (savedActiveProfile === 'real' || savedActiveProfile === 'calendar')
             ? savedActiveProfile
             : parseInt(savedActiveProfile);
     } else {
-        state.activeProfileId = 0;
+        // Por defecto, ir a su propio perfil reclamado o al perfil 0
+        state.activeProfileId = state.myProfileId !== null ? state.myProfileId : 0;
     }
 
     if (savedActiveGroup) {
@@ -58,14 +66,26 @@ export function loadStateFromLocalStorage() {
 }
 
 export function saveData() {
-    if (state.userRole === 'admin') {
-        const updates = {
-            profiles: state.profiles,
-            realResults: state.realResults
-        };
-        window.firebase.database().ref('mundial_data').update(updates).catch(err => {
-            console.error("Error al guardar en Firebase: ", err);
-        });
+    if (!state.groupId) {
+        saveStateToLocalStorage();
+        return;
     }
+
+    const db = window.firebase.database();
+
+    if (state.activeProfileId === 'real' && state.userRole === 'admin') {
+        // Guardar resultados reales en el nodo global
+        db.ref('mundial_global/realResults').set(state.realResults).catch(err => {
+            console.error("Error al guardar resultados reales en Firebase: ", err);
+        });
+    } else if (state.myProfileId !== null && state.activeProfileId === state.myProfileId) {
+        // Guardar pronósticos del perfil reclamado en su sección del grupo
+        db.ref(`groups/${state.groupId}/profiles/${state.myProfileId}/predictions`)
+            .set(state.profiles[state.myProfileId].predictions || {})
+            .catch(err => {
+                console.error("Error al guardar predicciones en Firebase: ", err);
+            });
+    }
+
     saveStateToLocalStorage();
 }

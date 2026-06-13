@@ -11,7 +11,7 @@ export function updateLiveCalculations() {
     const gridContent = document.getElementById('grid-content');
     const standingCol = document.querySelector('.group-standing-column');
     
-    if (state.activePhase === 'groups' && state.activeProfileId !== 'calendar') {
+    if (state.activePhase === 'groups') {
         if (gridContent) gridContent.classList.remove('full-width');
         if (standingCol) standingCol.style.display = 'block';
         renderGroupStandingTable();
