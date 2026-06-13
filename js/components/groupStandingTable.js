@@ -12,6 +12,9 @@ export function renderGroupStandingTable() {
         if (state.activeProfileId === 'real') {
             profileNameBadge.textContent = "Resultados Reales";
             profileNameBadge.className = "badge badge-gold";
+        } else if (state.activeProfileId === 'calendar') {
+            profileNameBadge.textContent = "Calendario";
+            profileNameBadge.className = "badge badge-gold";
         } else {
             const profile = state.profiles.find(p => p.id === state.activeProfileId);
             profileNameBadge.textContent = profile ? profile.name : "Perfil";
@@ -19,7 +22,8 @@ export function renderGroupStandingTable() {
         }
     }
 
-    const standings = calculateGroupStandings(state.activeGroupId, state.activeProfileId);
+    const profileIdForStandings = state.activeProfileId === 'calendar' ? 'real' : state.activeProfileId;
+    const standings = calculateGroupStandings(state.activeGroupId, profileIdForStandings);
 
     standings.forEach((row, index) => {
         const team = TEAMS[row.teamId];

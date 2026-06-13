@@ -5,7 +5,7 @@ export const TEAMS = {
     "CZE": { name: "República Checa", flag: "cz", sportsDbId: 133904 },
     
     "CAN": { name: "Canadá", flag: "ca", sportsDbId: 140073 },
-    "BIH": { name: "Bosnia-Herzegovina", flag: "ba", sportsDbId: 150946 },
+    "BIH": { name: "Bosnia-Herzegovina", flag: "ba", sportsDbId: 134510 },
     "QAT": { name: "Qatar", flag: "qa", sportsDbId: 136472 },
     "SUI": { name: "Suiza", flag: "ch", sportsDbId: 134506 },
     
@@ -106,7 +106,8 @@ export const PROFILE_AVATARS = {
     1: "assets/ali.jpeg",
     2: "assets/derdabi.jpeg",
     3: "assets/chakron.jpeg",
-    4: "assets/afassi.jpeg"
+    4: "assets/afassi.jpeg",
+    5: "assets/suli.png.jpg"
 };
 
 export const FRIEND_THEMES = {
@@ -132,6 +133,11 @@ export const FRIEND_THEMES = {
     },
     4: { // Afassi
         flags: ["es", "ar"],
+        bgImage: "assets/theme_es.png",
+        gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 234, 0, 0.12) 0%, transparent 50%), #07080f"
+    },
+    5: { // Suli
+        flags: ["es", "ma"],
         bgImage: "assets/theme_es.png",
         gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 234, 0, 0.12) 0%, transparent 50%), #07080f"
     }

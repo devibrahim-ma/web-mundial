@@ -1,8 +1,29 @@
 import { state, saveData } from './state.js';
 import { renderProfileTabs, updateActiveProfileUI, renderMatches, updateLiveCalculations } from './components/index.js';
 import { checkAndFetchApiResults, fetchTeamInfo } from './api.js';
+import { escapeHTML } from './helpers.js';
 
 export function setupEventListeners() {
+    // Compartir grupo
+    const btnShare = document.getElementById('btn-share-group');
+    if (btnShare) {
+        btnShare.addEventListener('click', () => {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(() => {
+                showToast("¡Enlace copiado al portapapeles!");
+            }).catch(err => {
+                console.error("Error al copiar enlace:", err);
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast("¡Enlace copiado al portapapeles!");
+            });
+        });
+    }
+
     // Dropdown de Datos/Copia de Seguridad
     const btnBackup = document.getElementById('btn-backup');
     if (btnBackup) {
@@ -88,11 +109,22 @@ export function setupEventListeners() {
 
     if (btnEditProfiles && modal) {
         btnEditProfiles.addEventListener('click', () => {
-            // Rellenar campos de texto con nombres actuales
-            state.profiles.forEach(p => {
-                const inputName = document.getElementById(`profile-name-${p.id}`);
-                if (inputName) inputName.value = p.name;
-            });
+            // Generar dinámicamente los campos de texto con nombres actuales
+            const container = document.getElementById('edit-profiles-inputs-container');
+            if (container) {
+                container.innerHTML = '';
+                state.profiles.forEach((p, idx) => {
+                    const formGroup = document.createElement('div');
+                    formGroup.className = 'form-group';
+                    
+                    const labelText = idx === 0 ? `Perfil 1 (Tú):` : `Perfil ${idx + 1}:`;
+                    formGroup.innerHTML = `
+                        <label for="profile-name-${p.id}">${labelText}</label>
+                        <input type="text" id="profile-name-${p.id}" class="form-input" value="${escapeHTML(p.name)}" required maxlength="15">
+                    `;
+                    container.appendChild(formGroup);
+                });
+            }
             modal.classList.add('open');
         });
 
@@ -117,7 +149,11 @@ export function setupEventListeners() {
                     }
                 });
 
-                saveData();
+                if (state.groupId) {
+                    window.firebase.database().ref(`groups/${state.groupId}/profiles`).set(state.profiles)
+                        .catch(err => console.error("Error al guardar nombres en Firebase:", err));
+                }
+                saveStateToLocalStorage();
                 renderProfileTabs();
                 updateLiveCalculations();
                 closeModal();
@@ -128,27 +164,11 @@ export function setupEventListeners() {
     // Cambio de Fase (Grupos / Eliminatorias)
     const btnGroups = document.getElementById('btn-phase-groups');
     const btnKnockouts = document.getElementById('btn-phase-knockouts');
-    const groupSel = document.getElementById('group-selector-container');
-    const koSel = document.getElementById('knockout-selector-container');
 
     const setPhase = (phase) => {
         state.activePhase = phase;
         saveData();
-
-        if (phase === 'groups') {
-            if (btnGroups) btnGroups.classList.add('active');
-            if (btnKnockouts) btnKnockouts.classList.remove('active');
-            if (groupSel) groupSel.style.display = 'block';
-            if (koSel) koSel.style.display = 'none';
-        } else {
-            if (btnGroups) btnGroups.classList.remove('active');
-            if (btnKnockouts) btnKnockouts.classList.add('active');
-            if (groupSel) groupSel.style.display = 'none';
-            if (koSel) koSel.style.display = 'block';
-        }
-
-        renderMatches();
-        updateLiveCalculations();
+        updateActiveProfileUI();
     };
 
     if (btnGroups) btnGroups.addEventListener('click', () => setPhase('groups'));
@@ -273,7 +293,7 @@ export function setupEventListeners() {
                     const card = document.createElement('div');
                     card.className = 'player-card';
                     
-                    const defaultPhoto = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCcgZmlsbD0ncmdiYSgyNTUsMjU1LDI1NSwwLjE1KSc+PGNpcmNsZSBjeD0nMTInIGN5PSc4JyByPSc0Jy8+PHBhdGggZD0nTTEyIDE0Yy02LjEgMC04IDQtOCA0djJoMTZ2LTJzLTEuOS00LTgtNHonLz48L3N2Zz4=";
+                    const defaultPhoto = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCcgZmlsbD0ncmgiYSgyNTUsMjU1LDI1NSwwLjE1KSc+PGNpcmNsZSBjeD0nMTInIGN5PSc4JyByPSc0Jy8+PHBhdGggZD0nTTEyIDE0Yy02LjEgMC04IDQtOCA0djJoMTZ2LTJzLTEuOS00LTgtNHonLz48L3N2Zz4=";
                     const photoSrc = p.strCutout || p.strThumb || defaultPhoto;
                     
                     // Traducir roles para una experiencia en español impecable
@@ -333,6 +353,25 @@ export function setupEventListeners() {
             });
         });
     }
+
+    // Reclamar perfil
+    const btnClaimProfile = document.getElementById('btn-claim-profile-now');
+    if (btnClaimProfile) {
+        btnClaimProfile.addEventListener('click', () => {
+            if (state.groupId && typeof state.activeProfileId === 'number') {
+                localStorage.setItem(`wc2026_my_profile_id_${state.groupId}`, state.activeProfileId);
+                state.myProfileId = state.activeProfileId;
+                
+                // Ocultar banner
+                const banner = document.getElementById('claim-profile-banner');
+                if (banner) banner.style.display = 'none';
+                
+                // Re-renderizar partidos e UI para desbloquear edición
+                renderMatches();
+                updateActiveProfileUI();
+            }
+        });
+    }
 }
 
 // --- REPRODUCTOR DE MÚSICA ---
@@ -372,4 +411,120 @@ export function setupMusicPlayer() {
             toggleBtn.innerHTML = '<span>🔊</span>';
         }
     });
+}
+
+// --- EVENTOS DE CREACIÓN DE GRUPO ---
+export function setupLandingEvents() {
+    const btnAddParticipant = document.getElementById('btn-add-participant');
+    const participantsContainer = document.getElementById('participants-inputs-container');
+    const formCreateGroup = document.getElementById('form-create-group');
+
+    if (btnAddParticipant && participantsContainer) {
+        // Clonar para evitar duplicados si se llama de nuevo
+        const clone = btnAddParticipant.cloneNode(true);
+        btnAddParticipant.parentNode.replaceChild(clone, btnAddParticipant);
+
+        clone.addEventListener('click', () => {
+            const count = participantsContainer.querySelectorAll('.participant-input-row').length + 1;
+            
+            const row = document.createElement('div');
+            row.className = 'participant-input-row';
+            row.innerHTML = `
+                <input type="text" class="form-input participant-name-input" placeholder="Nombre Amigo ${count}" required maxlength="15">
+                <span class="input-row-index">#${count}</span>
+                <button type="button" class="btn-remove-participant" style="background:none; border:none; color:var(--color-danger); cursor:pointer; font-size:1.1rem; margin-left:8px;" title="Eliminar">✕</button>
+            `;
+            
+            row.querySelector('.btn-remove-participant').addEventListener('click', () => {
+                row.remove();
+                participantsContainer.querySelectorAll('.participant-input-row').forEach((r, idx) => {
+                    r.querySelector('.input-row-index').textContent = `#${idx + 1}`;
+                    r.querySelector('.participant-name-input').placeholder = `Nombre Amigo ${idx + 1}`;
+                });
+            });
+            
+            participantsContainer.appendChild(row);
+            participantsContainer.scrollTop = participantsContainer.scrollHeight;
+        });
+    }
+
+    if (formCreateGroup) {
+        formCreateGroup.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const groupName = document.getElementById('group-input-name').value.trim();
+            const participantInputs = document.querySelectorAll('.participant-name-input');
+            const participantNames = [];
+            
+            participantInputs.forEach(input => {
+                const name = input.value.trim();
+                if (name) participantNames.push(name);
+            });
+
+            if (participantNames.length < 2) {
+                alert("Debes añadir al menos 2 participantes.");
+                return;
+            }
+
+            const db = window.firebase.database();
+            const newGroupRef = db.ref('groups').push();
+            const newGroupId = newGroupRef.key;
+
+            const profiles = participantNames.map((name, index) => ({
+                id: index,
+                name: name,
+                predictions: {}
+            }));
+
+            newGroupRef.set({
+                name: groupName,
+                profiles: profiles
+            }).then(() => {
+                localStorage.setItem(`wc2026_my_profile_id_${newGroupId}`, 0);
+                localStorage.setItem(`wc2026_active_profile_${newGroupId}`, 0);
+                window.location.search = `?group=${newGroupId}`;
+            }).catch(err => {
+                console.error("Error al crear el grupo:", err);
+                alert("Error al crear el grupo. Por favor, inténtalo de nuevo.");
+            });
+        });
+    }
+}
+
+// Helper para mostrar un toast premium
+function showToast(message) {
+    let toast = document.getElementById('toast-notification');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast-notification';
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: linear-gradient(135deg, var(--color-primary) 0%, #0d0f1c 100%);
+            border: 1px solid rgba(93, 0, 235, 0.4);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            z-index: 99999;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+        `;
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    // Forzar reflow
+    toast.offsetHeight;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(20px)';
+    }, 2500);
 }

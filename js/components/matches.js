@@ -281,6 +281,38 @@ export function renderMatches() {
             }
         }
 
+        // Buscar el partido correspondiente en la API para comprobar la fecha de inicio
+        const apiMatch = (state.apiMatchesList || []).find(m => {
+            const h = m.homeTeam && m.homeTeam.tla;
+            const a = m.awayTeam && m.awayTeam.tla;
+            return (h === match.home && a === match.away) || (h === match.away && a === match.home);
+        });
+        const matchDate = apiMatch ? new Date(apiMatch.utcDate) : null;
+        const isStarted = matchDate && matchDate < new Date();
+
+        console.log(`[DEBUG LOCK] Partido ${match.id} (${match.home} vs ${match.away}):`, {
+            encontradoEnAPI: !!apiMatch,
+            fechaPartido: matchDate,
+            estaEmpezado: isStarted,
+            activeProfileId: state.activeProfileId,
+            myProfileId: state.myProfileId,
+            isEditable: (state.activeProfileId === 'real' && state.userRole === 'admin') || 
+                        (state.myProfileId !== null && state.activeProfileId === state.myProfileId && !isStarted)
+        });
+
+        const isEditable = (state.userRole === 'admin');
+
+        let matchDateHTML = "";
+        if (matchDate) {
+            let weekday = matchDate.toLocaleDateString('es-ES', { weekday: 'short' });
+            weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+            const dayMonth = matchDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+            const timeStr = matchDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+            const statusText = isStarted ? "🔒 Cerrado" : `${weekday}, ${dayMonth} - ${timeStr}`;
+            const statusClass = isStarted ? "locked" : "upcoming";
+            matchDateHTML = `<span class="match-date-badge ${statusClass}">${statusText}</span>`;
+        }
+
         const card = document.createElement('div');
         card.className = `match-card ${ (val1 !== "" && val2 !== "") ? 'has-prediction' : ''}`;
         card.id = `card-${match.id}`;
@@ -373,6 +405,7 @@ export function renderMatches() {
         const awayInfoBtn = '';
 
         card.innerHTML = `
+            ${matchDateHTML}
             <div class="match-main-row">
                 <div class="${homeTeamClass}">
                     ${homeInfoBtn}
@@ -389,7 +422,7 @@ export function renderMatches() {
                         placeholder="-"
                         data-match-id="${match.id}" 
                         data-team-pos="1"
-                        ${state.userRole !== 'admin' ? 'disabled' : ''}>
+                        ${isEditable ? '' : 'disabled'}>
                     <span class="score-divider">vs</span>
                     <input type="number" min="0" max="99" class="score-input" 
                         id="input-${match.id}-2" 
@@ -397,7 +430,7 @@ export function renderMatches() {
                         placeholder="-"
                         data-match-id="${match.id}" 
                         data-team-pos="2"
-                        ${state.userRole !== 'admin' ? 'disabled' : ''}>
+                        ${isEditable ? '' : 'disabled'}>
                 </div>
 
                 <div class="${awayTeamClass}">

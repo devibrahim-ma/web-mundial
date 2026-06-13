@@ -1,7 +1,7 @@
 import { firebaseConfig } from './js/constants.js';
 import { state, loadStateFromLocalStorage, saveData } from './js/state.js';
 import { renderProfileTabs, updateActiveProfileUI, renderGroupTabs, renderMatches, updateLiveCalculations } from './js/components/index.js';
-import { setupEventListeners } from './js/events.js';
+import { setupEventListeners, setupLandingEvents } from './js/events.js';
 import { checkAndFetchApiResults, updateApiStatusUI } from './js/api.js';
 
 // Inicializar Firebase
@@ -9,9 +9,6 @@ window.firebase.initializeApp(firebaseConfig);
 const db = window.firebase.database();
 
 // --- INICIALIZACIÓN ---
-// python -m http.server 8000
-// https://web-mundial-lake.vercel.app/?admin=true 
-// npx vercel --prod
 async function initApp() {
     try {
         const cached = localStorage.getItem('wc2026_api_matches');
@@ -32,52 +29,62 @@ async function initApp() {
         state.userRole = localStorage.getItem('wc2026_role') || 'user';
     }
 
-    // 2. Cargar JSON local como respaldo de inicialización si Firebase estuviese vacío
-    let localBackup = null;
-    try {
-        const response = await fetch('predicciones_mundial2026.json');
-        localBackup = await response.json();
-    } catch (e) {
-        console.error("Error al cargar predicciones locales de respaldo:", e);
-    }
+    const landingContainer = document.getElementById('landing-container');
+    const appContainer = document.querySelector('.app-container');
 
-    // 3. Cargar datos en tiempo real de Firebase
-    db.ref('mundial_data').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            state.profiles = data.profiles || [];
-            state.realResults = data.realResults || {};
-            state.apiToken = data.apiToken || "";
-            state.lastApiFetchTime = data.lastApiFetchTime || 0;
-            state.apiSyncStatus = data.apiSyncStatus || "Sincronizado";
+    if (landingContainer) landingContainer.style.display = 'none';
+    if (appContainer) appContainer.style.display = 'block';
+
+    state.groupId = 'chavules';
+
+    // Cargar perfil reclamado por el usuario
+    const savedMyProfile = localStorage.getItem(`wc2026_my_profile_id_${state.groupId}`);
+    state.myProfileId = savedMyProfile !== null ? parseInt(savedMyProfile) : null;
+
+    // Escuchar datos globales compartidos
+    db.ref('mundial_global').on('value', (snapshot) => {
+        const globalData = snapshot.val();
+        if (globalData) {
+            state.realResults = globalData.realResults || {};
+            state.apiToken = globalData.apiToken || "";
+            state.lastApiFetchTime = globalData.lastApiFetchTime || 0;
+            state.apiSyncStatus = globalData.apiSyncStatus || "Sincronizado";
+            state.apiMatchesList = globalData.apiMatchesList || state.apiMatchesList;
             updateApiStatusUI();
-        } else if (localBackup) {
-            state.profiles = localBackup.profiles || [];
-            state.realResults = localBackup.realResults || {};
-            // Si el admin entra por primera vez y Firebase está vacío, subir el JSON local
-            if (state.userRole === 'admin') {
-                db.ref('mundial_data').set({ profiles: state.profiles, realResults: state.realResults });
+            
+            if (state.isInitialized) {
+                renderMatches();
+                updateLiveCalculations();
+            }
+        }
+    });
+
+    // Escuchar datos de este grupo específico
+    db.ref(`groups/${state.groupId}`).on('value', (snapshot) => {
+        const groupData = snapshot.val();
+        if (groupData) {
+            state.groupName = groupData.name || "Grupo";
+            const rawProfiles = groupData.profiles || [];
+            state.profiles = rawProfiles.map(p => ({
+                ...p,
+                predictions: p.predictions || {}
+            }));
+            
+            const groupNameEl = document.getElementById('header-group-name');
+            if (groupNameEl) groupNameEl.textContent = state.groupName;
+
+            if (!state.isInitialized) {
+                state.isInitialized = true;
+                completeInit();
+            } else {
+                renderProfileTabs();
+                renderGroupTabs();
+                renderMatches();
+                updateLiveCalculations();
             }
         } else {
-            const defaultNames = ["Ibra", "Ali", "Derdabi", "Chakron", "Afassi"];
-            state.profiles = defaultNames.map((name, index) => ({
-                id: index,
-                name: name,
-                predictions: {}
-            }));
-            state.realResults = {};
-        }
-
-        // Evitar duplicar listeners de eventos al recibir actualizaciones en tiempo real
-        if (!state.isInitialized) {
-            state.isInitialized = true;
-            completeInit();
-        } else {
-            // Re-renderizar todo con los nuevos datos recibidos
-            renderProfileTabs();
-            renderGroupTabs();
-            renderMatches();
-            updateLiveCalculations();
+            alert("El grupo especificado no existe. Redirigiendo para crear uno nuevo.");
+            window.location.search = "";
         }
     });
 }

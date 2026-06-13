@@ -16,6 +16,47 @@
     <!-- Contenedor Principal para Fondo Dinámico -->
     <div class="app-background"></div>
 
+    <!-- Pantalla de Bienvenida / Landing de Creación (Multigrupo) -->
+    <div id="landing-container" class="landing-overlay" style="display: none;">
+        <div class="landing-card glass-card animate-fade-in">
+            <div class="landing-header">
+                <img src="ball.png" class="landing-logo-ball" alt="Balón 2026">
+                <h2>Crea tu Quiniela Mundial 2026</h2>
+                <p>Juega con tus amigos y demuestra quién sabe más de fútbol. ¡Totalmente gratis y sin registros!</p>
+            </div>
+            
+            <div class="landing-body">
+                <form id="form-create-group">
+                    <div class="form-group">
+                        <label for="group-input-name">Nombre de tu Grupo:</label>
+                        <input type="text" id="group-input-name" class="form-input" placeholder="Ej. Los Amigos del Trabajo" required maxlength="30">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Participantes (Amigos):</label>
+                        <div id="participants-inputs-container">
+                            <div class="participant-input-row">
+                                <input type="text" class="form-input participant-name-input" placeholder="Nombre Amigo 1" required maxlength="15">
+                                <span class="input-row-index">#1</span>
+                            </div>
+                            <div class="participant-input-row">
+                                <input type="text" class="form-input participant-name-input" placeholder="Nombre Amigo 2" required maxlength="15">
+                                <span class="input-row-index">#2</span>
+                            </div>
+                        </div>
+                        <button type="button" id="btn-add-participant" class="btn btn-secondary btn-sm" style="margin-top: 10px;">
+                            <span>➕ Añadir Amigo</span>
+                        </button>
+                    </div>
+                    
+                    <div class="landing-footer">
+                        <button type="submit" class="btn btn-primary btn-block">🚀 Crear Quiniela Privada</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <!-- Cabecera de la Aplicación -->
         <header class="app-header">
@@ -25,7 +66,7 @@
                 </div>
                 <div class="logo-text">
                     <h1>Mundial 2026</h1>
-                    <p>Quiniela & Predicciones Chavules</p>
+                    <p>Quiniela & Predicciones <span id="header-group-name">Chavules</span></p>
                     <div id="api-sync-container" class="api-sync-indicator">
                         <span class="sync-dot"></span>
                         <span id="api-sync-text">Cargando...</span>
@@ -39,6 +80,12 @@
                     </button>
                     <input type="range" id="slider-music-volume" min="0" max="1" step="0.05" value="0.3" class="volume-slider" title="Ajustar volumen">
                 </div>
+                <button id="btn-share-group" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5m-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3"/>
+                    </svg>
+                    <span>Compartir</span>
+                </button>
                 <button id="btn-edit-profiles" class="btn btn-secondary">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.5.5 0 0 1-.5-.5V9h-.5a.5.5 0 0 1-.5-.5V8h-.5a.5.5 0 0 1-.5-.5V7h-.5a.5.5 0 0 0-.146-.354L1.3 5.793V6.5a.5.5 0 0 1-.5.5H.5a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .146-.354l.5-.5a.5.5 0 0 1 .354-.146H1.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207L1.3 12H1.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l-.146.146zm-6 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 0-.708l.5-.5a.5.5 0 0 1 .708 0l.5.5a.5.5 0 0 1 0 .708z"/>
@@ -145,6 +192,18 @@
                 <div class="grid-content" id="grid-content">
                     <!-- Columna Partidos -->
                     <div class="matches-column">
+                        <!-- Banner de Reclamación de Perfil -->
+                        <div id="claim-profile-banner" class="claim-banner glass-card" style="display: none;">
+                            <div class="claim-banner-content">
+                                <span class="claim-banner-icon">👋</span>
+                                <div class="claim-banner-text">
+                                    <h3>¡Estás viendo la quiniela de <span id="claim-profile-owner-name">...</span>!</h3>
+                                    <p>Esta pestaña es de solo lectura. Si este es tu nombre, pulsa abajo para reclamarlo y pronosticar.</p>
+                                </div>
+                                <button id="btn-claim-profile-now" class="btn btn-primary">👉 Este soy yo</button>
+                            </div>
+                        </div>
+
                         <div class="glass-card">
                             <div class="card-header">
                                 <h2 id="selected-group-title">Grupo A - Partidos</h2>
@@ -203,26 +262,7 @@
             </div>
             <div class="modal-body">
                 <form id="form-edit-profiles">
-                    <div class="form-group">
-                        <label for="profile-name-0">Perfil 1 (Tú):</label>
-                        <input type="text" id="profile-name-0" class="form-input" required maxlength="15">
-                    </div>
-                    <div class="form-group">
-                        <label for="profile-name-1">Perfil 2:</label>
-                        <input type="text" id="profile-name-1" class="form-input" required maxlength="15">
-                    </div>
-                    <div class="form-group">
-                        <label for="profile-name-2">Perfil 3:</label>
-                        <input type="text" id="profile-name-2" class="form-input" required maxlength="15">
-                    </div>
-                    <div class="form-group">
-                        <label for="profile-name-3">Perfil 4:</label>
-                        <input type="text" id="profile-name-3" class="form-input" required maxlength="15">
-                    </div>
-                    <div class="form-group">
-                        <label for="profile-name-4">Perfil 5:</label>
-                        <input type="text" id="profile-name-4" class="form-input" required maxlength="15">
-                    </div>
+                    <div id="edit-profiles-inputs-container"></div>
                     <div class="modal-footer">
                         <button type="button" id="btn-cancel-profiles" class="btn btn-secondary">Cancelar</button>
                         <button type="submit" class="btn btn-primary">Guardar Cambios</button>

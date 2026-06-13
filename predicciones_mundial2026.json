@@ -1469,6 +1469,11 @@
           "score2": 2
         }
       }
+    },
+    {
+      "id": 5,
+      "name": "Suli",
+      "predictions": {}
     }
   ],
   "realResults": {
