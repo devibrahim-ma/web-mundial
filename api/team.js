@@ -51,6 +51,20 @@ const WIKIPEDIA_MAPPING = {
 
 const playerPhotosCache = {};
 
+const PLAYER_NAME_OVERRIDES = {
+    // España
+    "Rodri": "Rodrigo Hernández Cascante",
+    "Pedri": "Pedro González López",
+    "Gavi": "Pablo Martín Páez Gavira",
+    // Portugal
+    "Vitinha": "Vítor Machado Ferreira",
+    "Jota": "Diogo Jota",
+    "Beto": "Beto Norberto",
+    // Brasil
+    "Neymar": "Neymar da Silva Santos Júnior",
+    "Raphinha": "Raphael Dias Belloli"
+};
+
 function cleanName(name) {
   if (!name) return "";
   return name
@@ -278,19 +292,30 @@ export default async function handler(req, res) {
       // Buscar en paralelo los jugadores restantes
       if (playersToSearch.length > 0) {
           const searchPromises = playersToSearch.map(async wp => {
+              const searchQuery = PLAYER_NAME_OVERRIDES[wp.strPlayer] || wp.strPlayer;
               try {
-                  const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/searchplayers.php?p=${encodeURIComponent(wp.strPlayer)}`);
+                  const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/searchplayers.php?p=${encodeURIComponent(searchQuery)}`);
                   if (!res.ok) return { wp, photo: "" };
                   const data = await res.json();
                   if (data && data.player && data.player.length > 0) {
-                      const matchedPlayer = data.player.find(p => {
-                          const cleanDb = cleanName(p.strPlayer);
-                          const cleanWiki = cleanName(wp.strPlayer);
-                          return cleanWiki.includes(cleanDb) || cleanDb.includes(cleanWiki);
+                      // Filtrar jugadores retirados (para evitar falsos positivos con ex-jugadores históricos)
+                      const activePlayers = data.player.filter(p => {
+                          const team = p.strTeam || "";
+                          const isRetired = team.startsWith('_') || team.toLowerCase().includes('retired');
+                          return !isRetired;
                       });
-                      const p = matchedPlayer || data.player[0];
-                      const photoUrl = p.strCutout || p.strThumb || "";
-                      return { wp, photo: photoUrl };
+
+                      if (activePlayers.length > 0) {
+                          const matchedPlayer = activePlayers.find(p => {
+                              const cleanDb = cleanName(p.strPlayer);
+                              const cleanWiki = cleanName(wp.strPlayer);
+                              const cleanOverride = PLAYER_NAME_OVERRIDES[wp.strPlayer] ? cleanName(PLAYER_NAME_OVERRIDES[wp.strPlayer]) : "";
+                              return cleanWiki.includes(cleanDb) || cleanDb.includes(cleanWiki) || (cleanOverride && (cleanOverride.includes(cleanDb) || cleanDb.includes(cleanOverride)));
+                          });
+                          const p = matchedPlayer || activePlayers[0];
+                          const photoUrl = p.strCutout || p.strThumb || "";
+                          return { wp, photo: photoUrl };
+                      }
                   }
                   return { wp, photo: "" };
               } catch (err) {
