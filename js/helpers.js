@@ -16,7 +16,12 @@ export function escapeHTML(str) {
 export function getTeamInfo(teamRef, profileId) {
     if (!teamRef) return { name: "Por determinar", flag: null, isPlaceholder: true };
     if (TEAMS[teamRef]) {
-        return { name: TEAMS[teamRef].name, flag: TEAMS[teamRef].flag, isPlaceholder: false };
+        return { 
+            name: TEAMS[teamRef].name, 
+            flag: TEAMS[teamRef].flag, 
+            sportsDbId: TEAMS[teamRef].sportsDbId, 
+            isPlaceholder: false 
+        };
     }
     // Si es un texto tipo "1º Grupo A" o "Ganador R32 Partido 1"
     return { name: teamRef, flag: null, isPlaceholder: true };

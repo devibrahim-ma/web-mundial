@@ -154,14 +154,14 @@ export async function checkAndFetchApiResults(force = false) {
     updateApiStatusUI();
 }
 
-export async function fetchTeamInfo(teamId) {
+export async function fetchTeamInfo(teamId, teamTla) {
     if (!teamId) return null;
     if (state.teamsCache[teamId]) {
         return state.teamsCache[teamId];
     }
 
     try {
-        const response = await fetch(`/api/team?id=${teamId}`);
+        const response = await fetch(`/api/team?id=${teamId}&tla=${encodeURIComponent(teamTla || '')}`);
         if (!response.ok) {
             throw new Error(`HTTP error: ${response.status}`);
         }

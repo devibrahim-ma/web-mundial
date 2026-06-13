@@ -179,6 +179,7 @@ export function setupEventListeners() {
         e.stopPropagation();
         
         const teamId = btn.getAttribute('data-team-id');
+        const teamTla = btn.getAttribute('data-team-tla');
         if (!teamId) return;
 
         // Abrir el modal y mostrar estado de carga
@@ -209,7 +210,7 @@ export function setupEventListeners() {
         }
 
         // Descargar datos de la selección
-        const data = await fetchTeamInfo(teamId);
+        const data = await fetchTeamInfo(teamId, teamTla);
 
         if (!data) {
             if (loadingContainer) loadingContainer.style.display = 'none';
