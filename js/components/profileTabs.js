@@ -51,7 +51,7 @@ export function renderProfileTabs() {
     calendarTab.innerHTML = `
         <span class="profile-name">Calendario</span>
         <div class="calendar-avatar-container">
-            <img class="profile-avatar" src="assets/calendario.jpg" alt="Calendario">
+            <img class="profile-avatar" src="icono.png" alt="Calendario">
         </div>
     `;
     calendarTab.addEventListener('click', () => {

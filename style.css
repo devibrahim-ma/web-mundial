@@ -119,6 +119,7 @@ body {
     position: relative;
     z-index: 1000;
     transition: var(--transition-smooth);
+    margin-bottom: 18px;
 }
 
 .app-header.admin-header {
@@ -306,6 +307,7 @@ body {
     padding: 8px;
     box-shadow: var(--glass-shadow);
     overflow: hidden;
+    margin-bottom: 18px;
 }
 
 .profiles-scroll {
@@ -1074,8 +1076,13 @@ tr:nth-child(3) .rank-number {
         font-size: 0.8rem;
     }
 
-    .avatar-container, .calendar-avatar-container, .admin-avatar-container {
+    .avatar-container {
         width: 38px !important;
+        height: 38px !important;
+        margin-top: 4px !important;
+    }
+
+    .calendar-avatar-container, .admin-avatar-container {
         height: 38px !important;
         margin-top: 4px !important;
     }
@@ -1767,7 +1774,6 @@ body::before {
 }
 
 .calendar-avatar-container {
-    width: 50px;
     height: 50px;
     border-radius: 8px;
     overflow: hidden;
@@ -1777,6 +1783,15 @@ body::before {
     align-items: center;
     justify-content: center;
     margin-top: 8px;
+    transition: var(--transition-smooth);
+    padding: 2px;
+}
+
+.calendar-avatar-container img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    border-radius: 6px;
     transition: var(--transition-smooth);
 }
 
