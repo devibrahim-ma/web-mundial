@@ -1812,11 +1812,7 @@ async function checkAndFetchApiResults(force = false) {
     updateApiStatusUI();
 
     try {
-        const response = await fetch("https://api.football-data.org/v4/competitions/WC/matches", {
-            headers: {
-                "X-Auth-Token": apiToken
-            }
-        });
+        const response = await fetch(`/api/matches?token=${encodeURIComponent(apiToken)}`);
 
         if (!response.ok) {
             throw new Error(`Error HTTP: ${response.status}`);
