@@ -245,7 +245,7 @@ function completeInit() {
     const savedActiveKnockoutRound = localStorage.getItem('wc2026_active_ko_round');
 
     if (savedActiveProfile !== null) {
-        activeProfileId = savedActiveProfile === 'real' ? 'real' : parseInt(savedActiveProfile);
+        activeProfileId = (savedActiveProfile === 'real' || savedActiveProfile === 'calendar') ? savedActiveProfile : parseInt(savedActiveProfile);
     } else {
         activeProfileId = 0;
     }
@@ -359,7 +359,7 @@ function isGroupComplete(groupId, profileId) {
     for (let i = 0; i < matches.length; i++) {
         const m = matches[i];
         let score1 = null, score2 = null;
-        if (profileId === 'real') {
+        if (profileId === 'real' || profileId === 'calendar') {
             const res = realResults[m.id];
             if (res && res.score1 !== null && res.score2 !== null) count++;
         } else {
@@ -476,7 +476,7 @@ function getKnockoutWinner(matchId, profileId) {
     let score2 = null;
     let penaltyWinner = null;
     
-    if (profileId === 'real') {
+    if (profileId === 'real' || profileId === 'calendar') {
         const res = realResults[matchId];
         if (res && res.score1 !== null && res.score2 !== null) {
             score1 = parseInt(res.score1);
@@ -667,11 +667,27 @@ function renderProfileTabs() {
         container.appendChild(tab);
     });
 
+    // Perfil Especial: Calendario
+    const calendarTab = document.createElement('button');
+    calendarTab.className = `profile-tab calendar-tab ${activeProfileId === 'calendar' ? 'active' : ''}`;
+    calendarTab.innerHTML = `
+        <span class="profile-name">Calendario</span>
+        <div class="avatar-container">
+            <img class="profile-avatar" src="assets/calendario.jpg" alt="Calendario">
+        </div>
+    `;
+    calendarTab.addEventListener('click', () => {
+        activeProfileId = 'calendar';
+        saveData();
+        updateActiveProfileUI();
+    });
+    container.appendChild(calendarTab);
+
     // Perfil Especial: Resultados Reales
     const adminTab = document.createElement('button');
     adminTab.className = `profile-tab admin-tab ${activeProfileId === 'real' ? 'active' : ''}`;
     adminTab.innerHTML = `
-        <span class="profile-name">Calendario</span>
+        <span class="profile-name">Resultados Reales</span>
         <div class="admin-avatar-container">
             <img class="profile-avatar admin-avatar" src="icono.png" alt="Admin">
         </div>
@@ -692,6 +708,8 @@ function updateActiveProfileUI() {
     tabs.forEach((tab, index) => {
         if (index < profiles.length) {
             tab.className = `profile-tab ${activeProfileId === index ? 'active' : ''}`;
+        } else if (index === profiles.length) {
+            tab.className = `profile-tab calendar-tab ${activeProfileId === 'calendar' ? 'active' : ''}`;
         } else {
             tab.className = `profile-tab admin-tab ${activeProfileId === 'real' ? 'active' : ''}`;
         }
@@ -700,7 +718,7 @@ function updateActiveProfileUI() {
     // Cambiar fondo según la selección del perfil
     const bgElement = document.querySelector('.app-background');
     if (bgElement) {
-        if (activeProfileId === 'real') {
+        if (activeProfileId === 'real' || activeProfileId === 'calendar') {
             // Fondo original de la Copa del Mundo
             bgElement.style.background = "radial-gradient(circle at 10% 20%, rgba(93, 0, 235, 0.15) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(0, 200, 83, 0.12) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(24, 42, 122, 0.18) 0%, transparent 60%), #05060b";
         } else if (FRIEND_THEMES[activeProfileId]) {
@@ -716,20 +734,35 @@ function updateActiveProfileUI() {
         }
     }
 
-    // Cambiar clases y visibilidad según si estamos en modo admin ('Resultados Reales')
+    // Cambiar clases y visibilidad según si estamos en modo admin ('Resultados Reales') o 'Calendario'
     const phaseWrapper = document.querySelector('.phase-selector-wrapper');
     const groupSel = document.getElementById('group-selector-container');
     const koSel = document.getElementById('knockout-selector-container');
     const standingCol = document.querySelector('.group-standing-column');
     const gridContent = document.getElementById('grid-content');
 
-    if (activeProfileId === 'real') {
-        document.body.classList.add('admin-mode-active');
+    if (activeProfileId === 'calendar') {
+        document.body.classList.remove('admin-mode-active');
         if (phaseWrapper) phaseWrapper.style.display = 'none';
         if (groupSel) groupSel.style.display = 'none';
         if (koSel) koSel.style.display = 'none';
         if (standingCol) standingCol.style.display = 'none';
         if (gridContent) gridContent.classList.add('full-width');
+    } else if (activeProfileId === 'real') {
+        document.body.classList.add('admin-mode-active');
+        if (phaseWrapper) phaseWrapper.style.display = 'block';
+        
+        if (activePhase === 'groups') {
+            if (groupSel) groupSel.style.display = 'block';
+            if (koSel) koSel.style.display = 'none';
+            if (standingCol) standingCol.style.display = 'block';
+            if (gridContent) gridContent.classList.remove('full-width');
+        } else {
+            if (groupSel) groupSel.style.display = 'none';
+            if (koSel) koSel.style.display = 'block';
+            if (standingCol) standingCol.style.display = 'none';
+            if (gridContent) gridContent.classList.add('full-width');
+        }
     } else {
         document.body.classList.remove('admin-mode-active');
         if (phaseWrapper) phaseWrapper.style.display = 'block';
@@ -784,10 +817,13 @@ function renderMatches() {
     const groupTitle = document.getElementById('selected-group-title');
     const isAdmin = activeProfileId === 'real';
 
-    if (activeProfileId === 'real') {
-        groupTitle.textContent = "Calendario y  RResultadoseales";
+    if (activeProfileId === 'calendar') {
+        groupTitle.textContent = "Calendario de Partidos";
         const progressBadge = document.getElementById('predictions-progress-badge');
-        if (progressBadge) progressBadge.textContent = "Sincronizado con API";
+        if (progressBadge) {
+            let finishedCount = apiMatchesList.filter(m => m.status === 'FINISHED').length;
+            progressBadge.textContent = `${finishedCount}/${apiMatchesList.length} Jugados`;
+        }
 
         if (!apiMatchesList || apiMatchesList.length === 0) {
             container.innerHTML = `
@@ -846,11 +882,7 @@ function renderMatches() {
                 ? `<img class="flag-icon" src="https://flagcdn.com/w40/${awayTeam.flag}.png" alt="${awayTeam.name}">` 
                 : `<img class="flag-icon" src="https://placehold.co/40x30/333/666?text=?" alt="?">`;
 
-            const isDraw = scoreHome !== "" && scoreAway !== "" && parseInt(scoreHome) === parseInt(scoreAway);
             const isKnockout = localMatch && localMatch.phase === 'knockouts';
-            const isHomeSelectable = isKnockout && isDraw && userRole === 'admin';
-            const isAwaySelectable = isKnockout && isDraw && userRole === 'admin';
-
             let homeTeamClass = "match-team team-home";
             if (isKnockout && penaltyWinner === 1) homeTeamClass += " penalty-winner";
             let awayTeamClass = "match-team team-away";
@@ -869,89 +901,24 @@ function renderMatches() {
                 <div class="match-main-row flex-grow-1">
                     <!-- Local -->
                     <div class="${homeTeamClass}">
-                        <span class="team-name ${isHomeSelectable ? 'selectable' : ''}" 
-                            id="team-home-name-${matchId}" 
-                            title="${homeTeam.name}">${homeTeam.name}</span>
+                        <span class="team-name" title="${homeTeam.name}">${homeTeam.name}</span>
                         ${homeFlagImg}
                     </div>
 
-                    <!-- Inputs Marcador -->
-                    <div class="match-score-inputs">
-                        <input type="number" min="0" max="99" class="score-input" 
-                            id="input-${matchId}-1" 
-                            value="${scoreHome}" 
-                            placeholder="-"
-                            data-match-id="${matchId}" 
-                            data-team-pos="1"
-                            ${userRole !== 'admin' || !localMatch ? 'disabled' : ''}>
-                        <span class="score-divider">vs</span>
-                        <input type="number" min="0" max="99" class="score-input" 
-                            id="input-${matchId}-2" 
-                            value="${scoreAway}" 
-                            placeholder="-"
-                            data-match-id="${matchId}" 
-                            data-team-pos="2"
-                            ${userRole !== 'admin' || !localMatch ? 'disabled' : ''}>
+                    <!-- Marcador Centrado y estático -->
+                    <div class="chrono-score-display">
+                        <span class="chrono-score-val">${scoreHome !== "" && scoreHome !== null ? scoreHome : "-"}</span>
+                        <span class="chrono-score-vs">vs</span>
+                        <span class="chrono-score-val">${scoreAway !== "" && scoreAway !== null ? scoreAway : "-"}</span>
                     </div>
 
                     <!-- Visitante -->
                     <div class="${awayTeamClass}">
                         ${awayFlagImg}
-                        <span class="team-name ${isAwaySelectable ? 'selectable' : ''}" 
-                            id="team-away-name-${matchId}" 
-                            title="${awayTeam.name}">${awayTeam.name}</span>
+                        <span class="team-name" title="${awayTeam.name}">${awayTeam.name}</span>
                     </div>
                 </div>
             `;
-
-            // Event Listeners si es editable
-            if (localMatch && userRole === 'admin') {
-                const in1 = card.querySelector(`#input-${matchId}-1`);
-                const in2 = card.querySelector(`#input-${matchId}-2`);
-
-                const handleInputChange = () => {
-                    const v1 = in1.value.trim();
-                    const v2 = in2.value.trim();
-
-                    const s1 = v1 === "" ? null : parseInt(v1);
-                    const s2 = v2 === "" ? null : parseInt(v2);
-
-                    if (s1 === null && s2 === null) {
-                        delete realResults[localMatch.id];
-                    } else {
-                        if (!realResults[localMatch.id]) realResults[localMatch.id] = {};
-                        realResults[localMatch.id].score1 = s1;
-                        realResults[localMatch.id].score2 = s2;
-                        
-                        if (s1 !== null && s2 !== null && s1 !== s2) {
-                            delete realResults[localMatch.id].penaltyWinner;
-                        }
-                    }
-
-                    if (s1 !== null && s2 !== null) {
-                        card.classList.add('has-prediction');
-                    } else {
-                        card.classList.remove('has-prediction');
-                    }
-
-                    saveData();
-                    updateLiveCalculations();
-
-                    if (isKnockout) {
-                        renderMatches();
-                    }
-                };
-
-                in1.addEventListener('input', handleInputChange);
-                in2.addEventListener('input', handleInputChange);
-
-                if (isHomeSelectable) {
-                    card.querySelector(`#team-home-name-${matchId}`).addEventListener('click', () => setPenaltyWinner(localMatch.id, 1));
-                }
-                if (isAwaySelectable) {
-                    card.querySelector(`#team-away-name-${matchId}`).addEventListener('click', () => setPenaltyWinner(localMatch.id, 2));
-                }
-            }
 
             container.appendChild(card);
         });
@@ -1294,7 +1261,7 @@ function updateLiveCalculations() {
     const gridContent = document.getElementById('grid-content');
     const standingCol = document.querySelector('.group-standing-column');
     
-    if (activePhase === 'groups') {
+    if (activePhase === 'groups' && activeProfileId !== 'calendar') {
         gridContent.classList.remove('full-width');
         standingCol.style.display = 'block';
         renderGroupStandingTable();
@@ -1534,7 +1501,7 @@ function calculateGroupStandings(groupId, profileId) {
         let score1 = null;
         let score2 = null;
 
-        if (profileId === 'real') {
+        if (profileId === 'real' || profileId === 'calendar') {
             const res = realResults[match.id];
             if (res && res.score1 !== null && res.score2 !== null) {
                 score1 = res.score1;
@@ -2050,10 +2017,10 @@ async function checkAndFetchApiResults(force = false) {
     }
 
     const now = Date.now();
-    // Cooldown de 5 minutos (300,000 ms)
-    if (!force && (now - lastApiFetchTime < 5 * 60 * 1000)) {
-        const diffMin = Math.ceil((5 * 60 * 1000 - (now - lastApiFetchTime)) / 1000 / 60);
-        apiSyncStatus = `Sincronizado (Próximo en ~${diffMin} min)`;
+    // Cooldown de 1 minuto (60,000 ms)
+    if (!force && (now - lastApiFetchTime < 1 * 60 * 1000)) {
+        const diffSec = Math.ceil((1 * 60 * 1000 - (now - lastApiFetchTime)) / 1000);
+        apiSyncStatus = `Sincronizado (Próximo en ~${diffSec}s)`;
         updateApiStatusUI();
         return;
     }

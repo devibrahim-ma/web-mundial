@@ -1600,6 +1600,44 @@ body::before {
     100% { opacity: 1; }
 }
 
+/* Marcador centrado para la vista de Calendario */
+.chrono-score-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 110px;
+}
+
+.chrono-score-val {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.chrono-score-vs {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+}
+
+.chronological-match-card .team-name {
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
 @media (max-width: 600px) {
     .chronological-match-card {
         flex-direction: column;
