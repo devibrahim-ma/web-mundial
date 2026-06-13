@@ -1487,3 +1487,48 @@ body::before {
     font-weight: 700;
     color: #fff;
 }
+
+/* --- INDICADOR DE SINCRONIZACIÓN DE API --- */
+.api-sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: var(--transition-smooth);
+    align-self: flex-start;
+}
+
+.sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    background-color: var(--color-text-muted);
+}
+
+.sync-dot.sync-success {
+    background-color: var(--color-success);
+    box-shadow: 0 0 8px var(--color-success);
+}
+
+.sync-dot.sync-error {
+    background-color: var(--color-danger);
+    box-shadow: 0 0 8px var(--color-danger);
+}
+
+.sync-dot.sync-loading {
+    background-color: var(--color-gold);
+    box-shadow: 0 0 8px var(--color-gold);
+    animation: sync-pulse 1s infinite alternate;
+}
+
+@keyframes sync-pulse {
+    0% { opacity: 0.4; }
+    100% { opacity: 1; }
+}

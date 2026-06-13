@@ -2,13 +2,7 @@
 
 // python -m http.server 8000
 // https://web-mundial-lake.vercel.app/?admin=true 
-/*
-
-git add .
-git commit -m "Actualizados resultados reales del mundial"
-git push
-npx vercel --prod
-*/
+// npx vercel --prod
 const TEAMS = {
     "MEX": { name: "México", flag: "mx" },
     "RSA": { name: "Sudáfrica", flag: "za" },
@@ -121,6 +115,9 @@ const db = firebase.database();
 // --- ESTADO DE LA APLICACIÓN ---
 
 let profiles = [];
+let apiToken = "";
+let lastApiFetchTime = 0;
+let apiSyncStatus = "No configurado";
 
 // --- FOTOS DE PERFIL DE LOS JUGADORES (Edita las rutas aquí directamente) ---
 const PROFILE_AVATARS = {
@@ -198,6 +195,10 @@ async function initApp() {
         if (data) {
             profiles = data.profiles || [];
             realResults = data.realResults || {};
+            apiToken = data.apiToken || "";
+            lastApiFetchTime = data.lastApiFetchTime || 0;
+            apiSyncStatus = data.apiSyncStatus || "Sincronizado";
+            updateApiStatusUI();
         } else if (localBackup) {
             profiles = localBackup.profiles || [];
             realResults = localBackup.realResults || {};
@@ -297,6 +298,10 @@ function completeInit() {
     renderProfileTabs();
     renderGroupTabs();
     updateActiveProfileUI();
+
+    // Iniciar bucle de sincronización automática de API
+    checkAndFetchApiResults();
+    setInterval(checkAndFetchApiResults, 60000);
 }
 
 // Aplicar restricciones de rol (ocultar botones de edición para usuarios comunes)
@@ -324,10 +329,11 @@ function applyRoleRestrictions() {
 // Guardar datos
 function saveData() {
     if (userRole === 'admin') {
-        db.ref('mundial_data').set({
+        const updates = {
             profiles: profiles,
             realResults: realResults
-        }).catch(err => {
+        };
+        db.ref('mundial_data').update(updates).catch(err => {
             console.error("Error al guardar en Firebase: ", err);
         });
     }
@@ -1765,6 +1771,157 @@ function escapeHTML(str) {
             '"': '&quot;'
         }[tag] || tag)
     );
+}
+
+// --- SINCRONIZACIÓN DE API ---
+
+function updateApiStatusUI() {
+    const statusTextEl = document.getElementById('api-sync-text');
+    const syncDot = document.querySelector('.sync-dot');
+    if (statusTextEl) {
+        statusTextEl.textContent = apiSyncStatus;
+    }
+    if (syncDot) {
+        if (apiSyncStatus.startsWith("Error") || apiSyncStatus.startsWith("Token")) {
+            syncDot.className = "sync-dot sync-error";
+        } else if (apiSyncStatus.startsWith("Sincronizando")) {
+            syncDot.className = "sync-dot sync-loading";
+        } else {
+            syncDot.className = "sync-dot sync-success";
+        }
+    }
+}
+
+async function checkAndFetchApiResults(force = false) {
+    if (!apiToken) {
+        apiSyncStatus = "API Token no configurado en Firebase";
+        updateApiStatusUI();
+        return;
+    }
+
+    const now = Date.now();
+    // Cooldown de 5 minutos (300,000 ms)
+    if (!force && (now - lastApiFetchTime < 5 * 60 * 1000)) {
+        const diffMin = Math.ceil((5 * 60 * 1000 - (now - lastApiFetchTime)) / 1000 / 60);
+        apiSyncStatus = `Sincronizado (Próximo en ~${diffMin} min)`;
+        updateApiStatusUI();
+        return;
+    }
+
+    apiSyncStatus = "Sincronizando con la API...";
+    updateApiStatusUI();
+
+    try {
+        const response = await fetch("https://api.football-data.org/v4/competitions/WC/matches", {
+            headers: {
+                "X-Auth-Token": apiToken
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data && data.matches) {
+            let updatedCount = 0;
+            
+            // Recopilar todos los partidos de nuestra quiniela
+            const allLocalMatches = [];
+            
+            // 1. Fase de grupos
+            for (const groupId in MATCHES) {
+                MATCHES[groupId].forEach(m => allLocalMatches.push({ ...m, phase: 'groups' }));
+            }
+            
+            // 2. Eliminatorias
+            const koMatchIds = [];
+            for (let i = 1; i <= 16; i++) koMatchIds.push(`R32-${i}`);
+            for (let i = 1; i <= 8; i++) koMatchIds.push(`R16-${i}`);
+            for (let i = 1; i <= 4; i++) koMatchIds.push(`QF-${i}`);
+            for (let i = 1; i <= 2; i++) koMatchIds.push(`SF-${i}`);
+            koMatchIds.push('3RD');
+            koMatchIds.push('FINAL');
+
+            koMatchIds.forEach(mId => {
+                const m = getMatchById(mId, 'real');
+                if (m) {
+                    allLocalMatches.push({ ...m, phase: 'knockouts' });
+                }
+            });
+
+            // Cruzar datos de la API
+            allLocalMatches.forEach(localMatch => {
+                if (localMatch.home && localMatch.away && 
+                    !localMatch.home.includes('Grupo') && !localMatch.home.includes('Partido') && 
+                    !localMatch.home.includes('Clasificado') && !localMatch.home.includes('Perdedor')) {
+                    
+                    const apiMatch = data.matches.find(m => {
+                        const homeTLA = m.homeTeam && m.homeTeam.tla;
+                        const awayTLA = m.awayTeam && m.awayTeam.tla;
+                        return (homeTLA === localMatch.home && awayTLA === localMatch.away) ||
+                               (homeTLA === localMatch.away && awayTLA === localMatch.home);
+                    });
+
+                    if (apiMatch && (apiMatch.status === 'FINISHED' || apiMatch.status === 'IN_PLAY' || apiMatch.status === 'PAUSED')) {
+                        const score = apiMatch.score && apiMatch.score.fullTime;
+                        if (score && score.home !== null && score.away !== null) {
+                            const isReversed = apiMatch.homeTeam.tla === localMatch.away;
+                            const score1 = isReversed ? score.away : score.home;
+                            const score2 = isReversed ? score.home : score.away;
+
+                            // Comprobar diferencia
+                            const currentReal = realResults[localMatch.id];
+                            const isDifferent = !currentReal || currentReal.score1 !== score1 || currentReal.score2 !== score2;
+
+                            if (isDifferent) {
+                                if (!realResults[localMatch.id]) realResults[localMatch.id] = {};
+                                realResults[localMatch.id].score1 = score1;
+                                realResults[localMatch.id].score2 = score2;
+                                updatedCount++;
+                            }
+
+                            // Si es empate en eliminatoria, comprobar penales
+                            if (localMatch.phase === 'knockouts' && score1 === score2) {
+                                const pen = apiMatch.score && apiMatch.score.penalties;
+                                if (pen && pen.home !== null && pen.away !== null) {
+                                    const penHomeWinner = pen.home > pen.away;
+                                    let localPenaltyWinner = 0;
+                                    if (!isReversed) {
+                                        localPenaltyWinner = penHomeWinner ? 1 : 2;
+                                    } else {
+                                        localPenaltyWinner = penHomeWinner ? 2 : 1;
+                                    }
+
+                                    if (!realResults[localMatch.id]) realResults[localMatch.id] = {};
+                                    if (realResults[localMatch.id].penaltyWinner !== localPenaltyWinner) {
+                                        realResults[localMatch.id].penaltyWinner = localPenaltyWinner;
+                                        updatedCount++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            lastApiFetchTime = Date.now();
+            const dateStr = new Date(lastApiFetchTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            apiSyncStatus = `Sincronizado a las ${dateStr}`;
+            
+            // Subir a Firebase los cambios calculados
+            db.ref('mundial_data').update({
+                realResults: realResults,
+                lastApiFetchTime: lastApiFetchTime,
+                apiSyncStatus: apiSyncStatus
+            });
+        }
+    } catch (error) {
+        console.error("Error en sincronización:", error);
+        apiSyncStatus = `Error: ${error.message}`;
+        db.ref('mundial_data').update({ apiSyncStatus: apiSyncStatus });
+    }
+    updateApiStatusUI();
 }
 
 // Lanzar aplicación
