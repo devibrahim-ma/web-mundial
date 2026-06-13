@@ -1,6 +1,6 @@
 import { state, saveData } from './state.js';
 import { renderProfileTabs, updateActiveProfileUI, renderMatches, updateLiveCalculations } from './components/index.js';
-import { checkAndFetchApiResults } from './api.js';
+import { checkAndFetchApiResults, fetchTeamInfo } from './api.js';
 
 export function setupEventListeners() {
     // Dropdown de Datos/Copia de Seguridad
@@ -169,6 +169,164 @@ export function setupEventListeners() {
 
     // Inicializar reproductor de música de fondo
     setupMusicPlayer();
+
+    // Modal de Información de Selecciones (TheSportsDB)
+    document.body.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.team-info-btn');
+        if (!btn) return;
+        
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const teamId = btn.getAttribute('data-team-id');
+        if (!teamId) return;
+
+        // Abrir el modal y mostrar estado de carga
+        const teamModal = document.getElementById('modal-team-info');
+        const loadingContainer = document.getElementById('team-info-loading');
+        const errorContainer = document.getElementById('team-info-error');
+        const dataContainer = document.getElementById('team-info-data');
+
+        if (teamModal) {
+            // Resetear pestañas del modal a estado inicial
+            const tabButtons = teamModal.querySelectorAll('.modal-tab-btn');
+            const tabContents = teamModal.querySelectorAll('.team-tab-content');
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            // Activar la pestaña 1 por defecto
+            const defaultTabBtn = teamModal.querySelector('.modal-tab-btn[data-tab="team-tab-info"]');
+            const defaultTabContent = document.getElementById('team-tab-info');
+            if (defaultTabBtn) defaultTabBtn.classList.add('active');
+            if (defaultTabContent) defaultTabContent.classList.add('active');
+
+            // Mostrar spinner de carga
+            if (loadingContainer) loadingContainer.style.display = 'flex';
+            if (errorContainer) errorContainer.style.display = 'none';
+            if (dataContainer) dataContainer.style.display = 'none';
+
+            teamModal.classList.add('open');
+        }
+
+        // Descargar datos de la selección
+        const data = await fetchTeamInfo(teamId);
+
+        if (!data) {
+            if (loadingContainer) loadingContainer.style.display = 'none';
+            if (errorContainer) errorContainer.style.display = 'block';
+            return;
+        }
+
+        // Rellenar cabecera e info general
+        const badgeImg = document.getElementById('team-info-badge');
+        const teamName = document.getElementById('team-info-name');
+        const teamDesc = document.getElementById('team-info-desc');
+        const stadiumName = document.getElementById('team-info-stadium-name');
+        const stadiumImg = document.getElementById('team-info-stadium-img');
+        const stadiumLoc = document.getElementById('team-info-stadium-loc');
+        const stadiumCap = document.getElementById('team-info-stadium-cap');
+        
+        const kitContainer = document.getElementById('team-kit-container');
+        const kitImg = document.getElementById('team-info-kit');
+
+        if (badgeImg) badgeImg.src = data.strTeamBadge || '';
+        if (teamName) teamName.textContent = data.strTeam || 'Selección';
+        
+        // Limpiar descripciones con posibles saltos o textos duplicados
+        let description = data.strDescriptionES || data.strDescriptionEN || 'No hay una descripción disponible.';
+        if (teamDesc) teamDesc.textContent = description;
+        
+        if (stadiumName) stadiumName.textContent = data.strStadium || 'Estadio';
+        if (stadiumLoc) stadiumLoc.textContent = data.strLocation || 'No disponible';
+        if (stadiumCap) {
+            stadiumCap.textContent = data.intStadiumCapacity 
+                ? parseInt(data.intStadiumCapacity).toLocaleString('es-ES') 
+                : 'No disponible';
+        }
+
+        if (stadiumImg) {
+            if (data.strStadiumThumb) {
+                stadiumImg.src = data.strStadiumThumb;
+                stadiumImg.style.display = 'block';
+            } else {
+                stadiumImg.style.display = 'none';
+            }
+        }
+
+        // Mostrar equipación oficial
+        if (kitContainer && kitImg) {
+            if (data.strEquipment) {
+                kitImg.src = data.strEquipment;
+                kitContainer.style.display = 'block';
+            } else {
+                kitContainer.style.display = 'none';
+            }
+        }
+
+        // Renderizar plantilla de jugadores convocados
+        const playersGrid = document.getElementById('team-players-grid');
+        if (playersGrid) {
+            playersGrid.innerHTML = '';
+            if (data.players && data.players.length > 0) {
+                data.players.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'player-card';
+                    
+                    const photoSrc = p.strCutout || p.strThumb || 'https://www.thesportsdb.com/images/media/player/cutout/default.png';
+                    
+                    // Traducir roles para una experiencia en español impecable
+                    let pos = p.strPosition || 'Jugador';
+                    if (pos === 'Goalkeeper') pos = 'Portero';
+                    else if (pos === 'Defender') pos = 'Defensa';
+                    else if (pos === 'Midfielder') pos = 'Centrocampista';
+                    else if (pos === 'Forward' || pos === 'Attacker') pos = 'Delantero';
+
+                    card.innerHTML = `
+                        <img class="player-photo" src="${photoSrc}" alt="${p.strPlayer}" onerror="this.src='https://www.thesportsdb.com/images/media/player/cutout/default.png'">
+                        <div class="player-name" title="${p.strPlayer}">${p.strPlayer}</div>
+                        <div class="player-pos">${pos}</div>
+                    `;
+                    playersGrid.appendChild(card);
+                });
+            } else {
+                playersGrid.innerHTML = '<p class="team-error-container" style="grid-column: 1/-1;">Plantilla no disponible para esta selección en TheSportsDB.</p>';
+            }
+        }
+
+        // Ocultar spinner y mostrar panel de datos
+        if (loadingContainer) loadingContainer.style.display = 'none';
+        if (dataContainer) dataContainer.style.display = 'block';
+    });
+
+    // Eventos para cerrar el modal de selecciones
+    const teamModal = document.getElementById('modal-team-info');
+    const btnCloseTeamModal = document.getElementById('btn-close-team-modal');
+    if (teamModal) {
+        const closeTeamModal = () => {
+            teamModal.classList.remove('open');
+        };
+        if (btnCloseTeamModal) btnCloseTeamModal.addEventListener('click', closeTeamModal);
+        teamModal.addEventListener('click', (e) => {
+            if (e.target === teamModal) closeTeamModal();
+        });
+
+        // Cambiar entre pestañas (Información / Plantilla)
+        const tabButtons = teamModal.querySelectorAll('.modal-tab-btn');
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTabId = btn.getAttribute('data-tab');
+                
+                // Desactivar botones y secciones activas
+                tabButtons.forEach(b => b.classList.remove('active'));
+                teamModal.querySelectorAll('.team-tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Activar seleccionados
+                btn.classList.add('active');
+                const targetTabContent = document.getElementById(targetTabId);
+                if (targetTabContent) targetTabContent.classList.add('active');
+            });
+        });
+    }
 }
 
 // --- REPRODUCTOR DE MÚSICA ---

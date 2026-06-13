@@ -232,6 +232,73 @@
         </div>
     </div>
 
+    <!-- Modal para Información de Selección -->
+    <div id="modal-team-info" class="modal-overlay">
+        <div class="modal-content glass-card team-info-modal-content">
+            <div class="modal-header">
+                <div class="modal-header-team-title">
+                    <img id="team-info-badge" class="team-modal-badge" src="" alt="Escudo">
+                    <h2 id="team-info-name">Nombre Selección</h2>
+                </div>
+                <button class="btn-close-modal" id="btn-close-team-modal">&times;</button>
+            </div>
+            
+            <!-- Pestañas internas del modal -->
+            <div class="modal-tabs">
+                <button class="modal-tab-btn active" data-tab="team-tab-info">Información</button>
+                <button class="modal-tab-btn" data-tab="team-tab-squad">Plantilla</button>
+            </div>
+            
+            <div class="modal-body team-info-modal-body">
+                <!-- Spinner de carga -->
+                <div id="team-info-loading" class="team-loading-spinner-container">
+                    <div class="loading-spinner"></div>
+                    <p>Descargando información...</p>
+                </div>
+                
+                <!-- Contenedor de Error -->
+                <div id="team-info-error" class="team-error-container" style="display: none;">
+                    <p>No se pudo cargar la información de la selección en este momento.</p>
+                </div>
+
+                <!-- Contenido de las pestañas -->
+                <div id="team-info-data" style="display: none;">
+                    <!-- Pestaña 1: Información General -->
+                    <div id="team-tab-info" class="team-tab-content active">
+                        <div class="team-details-grid">
+                            <div class="team-details-text">
+                                <h3>Historia y Detalles</h3>
+                                <p id="team-info-desc" class="team-scrollable-desc">Descripción...</p>
+                            </div>
+                            <div class="team-details-media">
+                                <div class="stadium-card">
+                                    <h4 id="team-info-stadium-name">Nombre Estadio</h4>
+                                    <img id="team-info-stadium-img" class="stadium-thumb" src="" alt="Estadio" onerror="this.style.display='none';">
+                                    <div class="stadium-meta">
+                                        <p>📍 <span id="team-info-stadium-loc">Ubicación</span></p>
+                                        <p>👥 Capacidad: <span id="team-info-stadium-cap">0</span></p>
+                                    </div>
+                                </div>
+                                <div class="kit-card" id="team-kit-container" style="display: none;">
+                                    <h4>Equipación Oficial</h4>
+                                    <img id="team-info-kit" class="kit-thumb" src="" alt="Camiseta" onerror="this.parentNode.style.display='none';">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pestaña 2: Plantilla / Jugadores -->
+                    <div id="team-tab-squad" class="team-tab-content">
+                        <h3>Jugadores Convocados</h3>
+                        <div class="players-grid" id="team-players-grid">
+                            <!-- Tarjetas de jugadores generadas dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Elemento de audio invisible -->
     <audio id="bg-music" src="assets/mundial_theme.mp3" loop></audio>
 

@@ -91,8 +91,14 @@ export function updateActiveProfileUI() {
 
     const bgElement = document.querySelector('.app-background');
     if (bgElement) {
-        if (state.activeProfileId === 'real' || state.activeProfileId === 'calendar') {
+        if (state.activeProfileId === 'calendar') {
+            bgElement.style.background = "linear-gradient(rgba(6, 7, 12, 0.84), rgba(6, 7, 12, 0.84)), url('assets/fondo.jpg')";
+            bgElement.style.backgroundSize = "cover";
+            bgElement.style.backgroundPosition = "center";
+        } else if (state.activeProfileId === 'real') {
             bgElement.style.background = "radial-gradient(circle at 10% 20%, rgba(93, 0, 235, 0.15) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(0, 200, 83, 0.12) 0%, transparent 50%), radial-gradient(circle at 50% 50%, rgba(24, 42, 122, 0.18) 0%, transparent 60%), #05060b";
+            bgElement.style.backgroundSize = "auto";
+            bgElement.style.backgroundPosition = "0 0";
         } else if (FRIEND_THEMES[state.activeProfileId]) {
             const theme = FRIEND_THEMES[state.activeProfileId];
             if (theme.bgImage) {

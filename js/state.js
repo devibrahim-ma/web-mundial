@@ -12,8 +12,10 @@ export const state = {
     apiSyncStatus: "No configurado",
     apiMatchesList: [],
     calendarVisibleStart: null,
-    calendarVisibleEnd: null
+    calendarVisibleEnd: null,
+    teamsCache: {}
 };
+
 
 export function saveStateToLocalStorage() {
     localStorage.setItem('wc2026_active_profile', state.activeProfileId);

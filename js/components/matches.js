@@ -165,6 +165,23 @@ export function renderMatches() {
             let awayTeamClass = "match-team team-away";
             if (isKnockout && penaltyWinner === 2) awayTeamClass += " penalty-winner";
 
+            const homeInfoBtn = homeTeam.sportsDbId
+                ? `<button class="team-info-btn" data-team-id="${homeTeam.sportsDbId}" title="Información de ${homeTeam.name}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                        <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                    </svg>
+                   </button>`
+                : '';
+            const awayInfoBtn = awayTeam.sportsDbId
+                ? `<button class="team-info-btn" data-team-id="${awayTeam.sportsDbId}" title="Información de ${awayTeam.name}">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                        <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                    </svg>
+                   </button>`
+                : '';
+
             const card = document.createElement('div');
             card.className = `match-card chronological-match-card ${ (scoreHome !== "" && scoreAway !== "") ? 'has-prediction' : ''}`;
             card.id = `card-${matchId}`;
@@ -177,6 +194,7 @@ export function renderMatches() {
                 </div>
                 <div class="match-main-row flex-grow-1">
                     <div class="${homeTeamClass}">
+                        ${homeInfoBtn}
                         <span class="team-name" title="${homeTeam.name}">${homeTeam.name}</span>
                         ${homeFlagImg}
                     </div>
@@ -190,6 +208,7 @@ export function renderMatches() {
                     <div class="${awayTeamClass}">
                         ${awayFlagImg}
                         <span class="team-name" title="${awayTeam.name}">${awayTeam.name}</span>
+                        ${awayInfoBtn}
                     </div>
                 </div>
             `;
@@ -350,9 +369,27 @@ export function renderMatches() {
             }
         }
 
+        const homeInfoBtn = (!homeTeam.isPlaceholder && homeTeam.sportsDbId)
+            ? `<button class="team-info-btn" data-team-id="${homeTeam.sportsDbId}" title="Información de ${homeTeam.name}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                </svg>
+               </button>`
+            : '';
+        const awayInfoBtn = (!awayTeam.isPlaceholder && awayTeam.sportsDbId)
+            ? `<button class="team-info-btn" data-team-id="${awayTeam.sportsDbId}" title="Información de ${awayTeam.name}">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                    <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+                </svg>
+               </button>`
+            : '';
+
         card.innerHTML = `
             <div class="match-main-row">
                 <div class="${homeTeamClass}">
+                    ${homeInfoBtn}
                     <span class="team-name ${isHomeSelectable ? 'selectable' : ''} ${homeTeam.isPlaceholder ? 'placeholder-team' : ''}" 
                         id="team-home-name-${match.id}" 
                         title="${homeTeam.name}">${homeTeam.name}</span>
@@ -382,6 +419,7 @@ export function renderMatches() {
                     <span class="team-name ${isAwaySelectable ? 'selectable' : ''} ${awayTeam.isPlaceholder ? 'placeholder-team' : ''}" 
                         id="team-away-name-${match.id}" 
                         title="${awayTeam.name}">${awayTeam.name}</span>
+                    ${awayInfoBtn}
                 </div>
             </div>
             ${feedbackRowHTML}

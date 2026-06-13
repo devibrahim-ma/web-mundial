@@ -153,3 +153,24 @@ export async function checkAndFetchApiResults(force = false) {
     }
     updateApiStatusUI();
 }
+
+export async function fetchTeamInfo(teamId) {
+    if (!teamId) return null;
+    if (state.teamsCache[teamId]) {
+        return state.teamsCache[teamId];
+    }
+
+    try {
+        const response = await fetch(`/api/team?id=${teamId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+        const data = await response.json();
+        state.teamsCache[teamId] = data;
+        return data;
+    } catch (error) {
+        console.error(`Error fetching team info for ID ${teamId}:`, error);
+        return null;
+    }
+}
+
