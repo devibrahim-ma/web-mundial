@@ -1532,3 +1532,91 @@ body::before {
     0% { opacity: 0.4; }
     100% { opacity: 1; }
 }
+
+/* --- CRONOLÓGICO VISTA DE PARTIDOS --- */
+.chronological-match-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    padding: 16px 20px;
+}
+
+.chronological-date-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 90px;
+    padding-right: 15px;
+    border-right: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.chrono-date {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    text-transform: capitalize;
+}
+
+.chrono-time {
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.chrono-status-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.chrono-status-badge.status-scheduled {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chrono-status-badge.status-live {
+    background-color: rgba(255, 61, 0, 0.15);
+    color: var(--color-warning);
+    border: 1px solid rgba(255, 61, 0, 0.25);
+    animation: live-pulse 1s infinite alternate;
+}
+
+.chrono-status-badge.status-finished {
+    background-color: rgba(0, 200, 83, 0.12);
+    color: var(--color-success);
+    border: 1px solid rgba(0, 200, 83, 0.25);
+}
+
+@keyframes live-pulse {
+    0% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+@media (max-width: 600px) {
+    .chronological-match-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .chronological-date-column {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        border-right: none;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+        padding-right: 0;
+        padding-bottom: 8px;
+        min-width: 100%;
+    }
+    .chrono-time {
+        margin-bottom: 0;
+    }
+}

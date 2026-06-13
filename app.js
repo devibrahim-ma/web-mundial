@@ -118,6 +118,7 @@ let profiles = [];
 let apiToken = "";
 let lastApiFetchTime = 0;
 let apiSyncStatus = "No configurado";
+let apiMatchesList = [];
 
 // --- FOTOS DE PERFIL DE LOS JUGADORES (Edita las rutas aquí directamente) ---
 const PROFILE_AVATARS = {
@@ -168,6 +169,13 @@ let isInitialized = false;
 // --- INICIALIZACIÓN ---
 
 async function initApp() {
+    try {
+        const cached = localStorage.getItem('wc2026_api_matches');
+        if (cached) apiMatchesList = JSON.parse(cached);
+    } catch (e) {
+        console.error("Error al cargar caché de partidos:", e);
+    }
+
     // 1. Determinar rol a partir del parámetro de URL (?admin=true o ?role=admin) o de LocalStorage
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('admin') || urlParams.get('role') === 'admin') {
@@ -663,7 +671,7 @@ function renderProfileTabs() {
     const adminTab = document.createElement('button');
     adminTab.className = `profile-tab admin-tab ${activeProfileId === 'real' ? 'active' : ''}`;
     adminTab.innerHTML = `
-        <span class="profile-name">Resultados Reales</span>
+        <span class="profile-name">Calendario</span>
         <div class="admin-avatar-container">
             <img class="profile-avatar admin-avatar" src="icono.png" alt="Admin">
         </div>
@@ -708,11 +716,35 @@ function updateActiveProfileUI() {
         }
     }
 
-    // Cambiar clases en el contenedor principal si estamos en modo admin
+    // Cambiar clases y visibilidad según si estamos en modo admin ('Resultados Reales')
+    const phaseWrapper = document.querySelector('.phase-selector-wrapper');
+    const groupSel = document.getElementById('group-selector-container');
+    const koSel = document.getElementById('knockout-selector-container');
+    const standingCol = document.querySelector('.group-standing-column');
+    const gridContent = document.getElementById('grid-content');
+
     if (activeProfileId === 'real') {
         document.body.classList.add('admin-mode-active');
+        if (phaseWrapper) phaseWrapper.style.display = 'none';
+        if (groupSel) groupSel.style.display = 'none';
+        if (koSel) koSel.style.display = 'none';
+        if (standingCol) standingCol.style.display = 'none';
+        if (gridContent) gridContent.classList.add('full-width');
     } else {
         document.body.classList.remove('admin-mode-active');
+        if (phaseWrapper) phaseWrapper.style.display = 'block';
+        
+        if (activePhase === 'groups') {
+            if (groupSel) groupSel.style.display = 'block';
+            if (koSel) koSel.style.display = 'none';
+            if (standingCol) standingCol.style.display = 'block';
+            if (gridContent) gridContent.classList.remove('full-width');
+        } else {
+            if (groupSel) groupSel.style.display = 'none';
+            if (koSel) koSel.style.display = 'block';
+            if (standingCol) standingCol.style.display = 'none';
+            if (gridContent) gridContent.classList.add('full-width');
+        }
     }
 
     // Re-renderizar partidos e información asociada al perfil
@@ -751,6 +783,181 @@ function renderMatches() {
 
     const groupTitle = document.getElementById('selected-group-title');
     const isAdmin = activeProfileId === 'real';
+
+    if (activeProfileId === 'real') {
+        groupTitle.textContent = "Calendario y  RResultadoseales";
+        const progressBadge = document.getElementById('predictions-progress-badge');
+        if (progressBadge) progressBadge.textContent = "Sincronizado con API";
+
+        if (!apiMatchesList || apiMatchesList.length === 0) {
+            container.innerHTML = `
+                <div class="no-matches-info" style="text-align: center; padding: 40px; color: var(--color-text-muted);">
+                    <p style="margin-bottom: 15px;">Aún no se han cargado los partidos desde la API.</p>
+                    <button class="btn btn-secondary" onclick="checkAndFetchApiResults(true)">Sincronizar ahora</button>
+                </div>
+            `;
+            return;
+        }
+
+        // Renderizar partidos de la API en orden cronológico
+        apiMatchesList.forEach(apiMatch => {
+            const localMatch = findLocalMatchByTLA(apiMatch.homeTeam.tla, apiMatch.awayTeam.tla);
+            const matchId = localMatch ? localMatch.id : `api-${apiMatch.id}`;
+            const localHomeCode = localMatch ? localMatch.home : apiMatch.homeTeam.tla;
+            const localAwayCode = localMatch ? localMatch.away : apiMatch.awayTeam.tla;
+
+            // Formatear Fecha y Hora
+            const matchDate = new Date(apiMatch.utcDate);
+            const dateStr = matchDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+            const timeStr = matchDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+            // Estado del partido en español
+            let statusText = "Programado";
+            let statusClass = "status-scheduled";
+            if (apiMatch.status === 'FINISHED') {
+                statusText = "Finalizado";
+                statusClass = "status-finished";
+            } else if (apiMatch.status === 'IN_PLAY' || apiMatch.status === 'PAUSED') {
+                statusText = "En Vivo";
+                statusClass = "status-live";
+            }
+
+            // Marcadores (si hay localMatch, permitimos override local)
+            let scoreHome = "";
+            let scoreAway = "";
+            let penaltyWinner = null;
+
+            if (localMatch && realResults[localMatch.id]) {
+                scoreHome = realResults[localMatch.id].score1 !== null ? realResults[localMatch.id].score1 : "";
+                scoreAway = realResults[localMatch.id].score2 !== null ? realResults[localMatch.id].score2 : "";
+                penaltyWinner = realResults[localMatch.id].penaltyWinner || null;
+            } else if (apiMatch.score && apiMatch.score.fullTime && apiMatch.score.fullTime.home !== null) {
+                scoreHome = apiMatch.score.fullTime.home;
+                scoreAway = apiMatch.score.fullTime.away;
+            }
+
+            const homeTeam = getTeamInfo(localHomeCode, 'real');
+            const awayTeam = getTeamInfo(localAwayCode, 'real');
+
+            const homeFlagImg = homeTeam.flag 
+                ? `<img class="flag-icon" src="https://flagcdn.com/w40/${homeTeam.flag}.png" alt="${homeTeam.name}">` 
+                : `<img class="flag-icon" src="https://placehold.co/40x30/333/666?text=?" alt="?">`;
+            const awayFlagImg = awayTeam.flag 
+                ? `<img class="flag-icon" src="https://flagcdn.com/w40/${awayTeam.flag}.png" alt="${awayTeam.name}">` 
+                : `<img class="flag-icon" src="https://placehold.co/40x30/333/666?text=?" alt="?">`;
+
+            const isDraw = scoreHome !== "" && scoreAway !== "" && parseInt(scoreHome) === parseInt(scoreAway);
+            const isKnockout = localMatch && localMatch.phase === 'knockouts';
+            const isHomeSelectable = isKnockout && isDraw && userRole === 'admin';
+            const isAwaySelectable = isKnockout && isDraw && userRole === 'admin';
+
+            let homeTeamClass = "match-team team-home";
+            if (isKnockout && penaltyWinner === 1) homeTeamClass += " penalty-winner";
+            let awayTeamClass = "match-team team-away";
+            if (isKnockout && penaltyWinner === 2) awayTeamClass += " penalty-winner";
+
+            const card = document.createElement('div');
+            card.className = `match-card chronological-match-card ${ (scoreHome !== "" && scoreAway !== "") ? 'has-prediction' : ''}`;
+            card.id = `card-${matchId}`;
+
+            card.innerHTML = `
+                <div class="chronological-date-column">
+                    <span class="chrono-date">${dateStr}</span>
+                    <span class="chrono-time">${timeStr}</span>
+                    <span class="chrono-status-badge ${statusClass}">${statusText}</span>
+                </div>
+                <div class="match-main-row flex-grow-1">
+                    <!-- Local -->
+                    <div class="${homeTeamClass}">
+                        <span class="team-name ${isHomeSelectable ? 'selectable' : ''}" 
+                            id="team-home-name-${matchId}" 
+                            title="${homeTeam.name}">${homeTeam.name}</span>
+                        ${homeFlagImg}
+                    </div>
+
+                    <!-- Inputs Marcador -->
+                    <div class="match-score-inputs">
+                        <input type="number" min="0" max="99" class="score-input" 
+                            id="input-${matchId}-1" 
+                            value="${scoreHome}" 
+                            placeholder="-"
+                            data-match-id="${matchId}" 
+                            data-team-pos="1"
+                            ${userRole !== 'admin' || !localMatch ? 'disabled' : ''}>
+                        <span class="score-divider">vs</span>
+                        <input type="number" min="0" max="99" class="score-input" 
+                            id="input-${matchId}-2" 
+                            value="${scoreAway}" 
+                            placeholder="-"
+                            data-match-id="${matchId}" 
+                            data-team-pos="2"
+                            ${userRole !== 'admin' || !localMatch ? 'disabled' : ''}>
+                    </div>
+
+                    <!-- Visitante -->
+                    <div class="${awayTeamClass}">
+                        ${awayFlagImg}
+                        <span class="team-name ${isAwaySelectable ? 'selectable' : ''}" 
+                            id="team-away-name-${matchId}" 
+                            title="${awayTeam.name}">${awayTeam.name}</span>
+                    </div>
+                </div>
+            `;
+
+            // Event Listeners si es editable
+            if (localMatch && userRole === 'admin') {
+                const in1 = card.querySelector(`#input-${matchId}-1`);
+                const in2 = card.querySelector(`#input-${matchId}-2`);
+
+                const handleInputChange = () => {
+                    const v1 = in1.value.trim();
+                    const v2 = in2.value.trim();
+
+                    const s1 = v1 === "" ? null : parseInt(v1);
+                    const s2 = v2 === "" ? null : parseInt(v2);
+
+                    if (s1 === null && s2 === null) {
+                        delete realResults[localMatch.id];
+                    } else {
+                        if (!realResults[localMatch.id]) realResults[localMatch.id] = {};
+                        realResults[localMatch.id].score1 = s1;
+                        realResults[localMatch.id].score2 = s2;
+                        
+                        if (s1 !== null && s2 !== null && s1 !== s2) {
+                            delete realResults[localMatch.id].penaltyWinner;
+                        }
+                    }
+
+                    if (s1 !== null && s2 !== null) {
+                        card.classList.add('has-prediction');
+                    } else {
+                        card.classList.remove('has-prediction');
+                    }
+
+                    saveData();
+                    updateLiveCalculations();
+
+                    if (isKnockout) {
+                        renderMatches();
+                    }
+                };
+
+                in1.addEventListener('input', handleInputChange);
+                in2.addEventListener('input', handleInputChange);
+
+                if (isHomeSelectable) {
+                    card.querySelector(`#team-home-name-${matchId}`).addEventListener('click', () => setPenaltyWinner(localMatch.id, 1));
+                }
+                if (isAwaySelectable) {
+                    card.querySelector(`#team-away-name-${matchId}`).addEventListener('click', () => setPenaltyWinner(localMatch.id, 2));
+                }
+            }
+
+            container.appendChild(card);
+        });
+
+        return;
+    }
 
     let listToRender = [];
 
@@ -1708,9 +1915,9 @@ function updateGroupStats() {
 
     // Buscar máximos
     let maxPerfect = -1;
-    let perfectLeader = '';
+    let perfectLeaders = [];
     let maxOutcome = -1;
-    let outcomeLeader = '';
+    let outcomeLeaders = [];
     let totalGoals = 0;
 
     // Calcular goles totales pronosticados
@@ -1730,27 +1937,36 @@ function updateGroupStats() {
     scores.forEach(row => {
         if (row.perfect > maxPerfect) {
             maxPerfect = row.perfect;
-            perfectLeader = row.name;
+            perfectLeaders = [row.name];
         } else if (row.perfect === maxPerfect && maxPerfect > 0) {
-            perfectLeader += ` y ${row.name}`;
+            perfectLeaders.push(row.name);
         }
 
         if (row.outcome > maxOutcome) {
             maxOutcome = row.outcome;
-            outcomeLeader = row.name;
+            outcomeLeaders = [row.name];
         } else if (row.outcome === maxOutcome && maxOutcome > 0) {
-            outcomeLeader += ` y ${row.name}`;
+            outcomeLeaders.push(row.name);
         }
     });
+
+    const formatLeaders = (arr) => {
+        if (arr.length === 0) return 'Ninguno';
+        if (arr.length === 1) return arr[0];
+        return arr.slice(0, -1).join(', ') + ' y ' + arr[arr.length - 1];
+    };
+
+    const perfectLeaderText = maxPerfect > 0 ? `${formatLeaders(perfectLeaders)} (${maxPerfect})` : 'Ninguno';
+    const outcomeLeaderText = maxOutcome > 0 ? `${formatLeaders(outcomeLeaders)} (${maxOutcome})` : 'Ninguno';
 
     container.innerHTML = `
         <div class="stat-item">
             <span class="stat-label">Rey del Pleno (+3 pts):</span>
-            <span class="stat-value">${maxPerfect > 0 ? `${perfectLeader} (${maxPerfect})` : 'Ninguno'}</span>
+            <span class="stat-value">${perfectLeaderText}</span>
         </div>
         <div class="stat-item">
             <span class="stat-label">Más Aciertos (+1 pt):</span>
-            <span class="stat-value">${maxOutcome > 0 ? `${outcomeLeader} (${maxOutcome})` : 'Ninguno'}</span>
+            <span class="stat-value">${outcomeLeaderText}</span>
         </div>
         <div class="stat-item">
             <span class="stat-label">Goles Pronosticados:</span>
@@ -1760,6 +1976,40 @@ function updateGroupStats() {
 }
 
 // --- AUXILIARES ---
+
+function findLocalMatchByTLA(homeTLA, awayTLA) {
+    if (!homeTLA || !awayTLA) return null;
+
+    // 1. Buscar en Fase de Grupos
+    for (const groupId in MATCHES) {
+        const found = MATCHES[groupId].find(m => 
+            (m.home === homeTLA && m.away === awayTLA) ||
+            (m.home === awayTLA && m.away === homeTLA)
+        );
+        if (found) return { ...found, phase: 'groups', groupId };
+    }
+
+    // 2. Buscar en Eliminatorias
+    const koMatchIds = [];
+    for (let i = 1; i <= 16; i++) koMatchIds.push(`R32-${i}`);
+    for (let i = 1; i <= 8; i++) koMatchIds.push(`R16-${i}`);
+    for (let i = 1; i <= 4; i++) koMatchIds.push(`QF-${i}`);
+    for (let i = 1; i <= 2; i++) koMatchIds.push(`SF-${i}`);
+    koMatchIds.push('3RD');
+    koMatchIds.push('FINAL');
+
+    for (const mId of koMatchIds) {
+        const m = getMatchById(mId, 'real');
+        if (m && m.home && m.away && 
+            !m.home.includes('Grupo') && !m.home.includes('Partido') && 
+            !m.home.includes('Clasificado') && !m.home.includes('Perdedor')) {
+            if ((m.home === homeTLA && m.away === awayTLA) || (m.home === awayTLA && m.away === homeTLA)) {
+                return { ...m, phase: 'knockouts' };
+            }
+        }
+    }
+    return null;
+}
 
 function escapeHTML(str) {
     return str.replace(/[&<>'"]/g, 
@@ -1820,6 +2070,12 @@ async function checkAndFetchApiResults(force = false) {
 
         const data = await response.json();
         if (data && data.matches) {
+            apiMatchesList = data.matches;
+            try {
+                localStorage.setItem('wc2026_api_matches', JSON.stringify(data.matches));
+            } catch (e) {
+                console.error("Error al cachear partidos:", e);
+            }
             let updatedCount = 0;
             
             // Recopilar todos los partidos de nuestra quiniela
