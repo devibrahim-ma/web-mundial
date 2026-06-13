@@ -282,8 +282,12 @@ export function setupEventListeners() {
                     else if (pos === 'Midfielder') pos = 'Centrocampista';
                     else if (pos === 'Forward' || pos === 'Attacker') pos = 'Delantero';
 
+                    const jerseyHTML = p.strJersey ? `<span class="player-jersey">${p.strJersey}</span>` : '';
                     card.innerHTML = `
-                        <img class="player-photo" src="${photoSrc}" alt="${p.strPlayer}" onerror="this.src='https://www.thesportsdb.com/images/media/player/cutout/default.png'">
+                        <div class="player-photo-container">
+                            <img class="player-photo" src="${photoSrc}" alt="${p.strPlayer}" onerror="this.src='https://www.thesportsdb.com/images/media/player/cutout/default.png'">
+                            ${jerseyHTML}
+                        </div>
                         <div class="player-name" title="${p.strPlayer}">${p.strPlayer}</div>
                         <div class="player-pos">${pos}</div>
                     `;

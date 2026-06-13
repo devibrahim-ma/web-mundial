@@ -73,34 +73,44 @@ function findMatchingPhoto(wikiName, sportsDbPlayers) {
 }
 
 async function fetchWikipediaSquad(tla) {
-  const countryName = WIKIPEDIA_MAPPING[tla];
+  const upperTla = tla ? tla.toUpperCase() : "";
+  const countryName = WIKIPEDIA_MAPPING[upperTla];
   if (!countryName) return [];
 
   try {
-    // 1. Obtener la lista de secciones de la página de Wikipedia
-    const sectionsRes = await fetch("https://en.wikipedia.org/w/api.php?action=parse&page=2026_FIFA_World_Cup_squads&format=json&prop=sections");
-    if (!sectionsRes.ok) return [];
+    // Obtener la página completa en una sola petición con User-Agent
+    const url = "https://en.wikipedia.org/w/api.php?action=parse&page=2026_FIFA_World_Cup_squads&format=json&prop=text";
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mundial2026QuinielaApp/1.0 (https://web-mundial-2026.vercel.app; contact@example.com)"
+      }
+    });
+    if (!res.ok) return [];
     
-    const sectionsData = await sectionsRes.json();
-    if (!sectionsData || !sectionsData.parse || !sectionsData.parse.sections) return [];
+    const data = await res.json();
+    if (!data || !data.parse || !data.parse.text) return [];
 
-    // Buscar la sección correspondiente al país
-    const section = sectionsData.parse.sections.find(s => 
-      s.line.toLowerCase() === countryName.toLowerCase()
-    );
-    if (!section) return [];
-
-    // 2. Obtener el contenido parseado de esa sección específica
-    const contentRes = await fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=2026_FIFA_World_Cup_squads&format=json&section=${section.index}&prop=text`);
-    if (!contentRes.ok) return [];
-
-    const contentData = await contentRes.json();
-    if (!contentData || !contentData.parse || !contentData.parse.text) return [];
-
-    const html = contentData.parse.text['*'];
+    const html = data.parse.text['*'];
+    const anchorId = countryName.replace(/ /g, "_");
     
-    // 3. Parsear las filas de los jugadores (<tr class="nat-fs-player">)
-    const segments = html.split(/<tr[^>]*class=["']nat-fs-player["'][^>]*>/);
+    // Buscar la cabecera correspondiente al país en el HTML completo
+    const regexAnchor = new RegExp(`id="${anchorId}"`, "i");
+    const anchorMatch = html.match(regexAnchor);
+    if (!anchorMatch) return [];
+
+    const startIdx = anchorMatch.index;
+    
+    // Buscar la siguiente tabla a partir del id de la cabecera
+    const tableIdx = html.indexOf('<table', startIdx);
+    if (tableIdx === -1) return [];
+
+    const endTableIdx = html.indexOf('</table>', tableIdx);
+    if (endTableIdx === -1) return [];
+
+    const tableHtml = html.substring(tableIdx, endTableIdx);
+    
+    // Parsear las filas de los jugadores (<tr class="nat-fs-player">)
+    const segments = tableHtml.split(/<tr[^>]*class=["']nat-fs-player["'][^>]*>/);
     const players = [];
 
     for (let i = 1; i < segments.length; i++) {
@@ -143,14 +153,18 @@ async function fetchWikipediaSquad(tla) {
 async function translateToSpanish(text) {
   if (!text) return "No hay una descripción disponible para esta selección.";
   try {
-    // MyMemory tiene un límite razonable por petición, por lo que tomamos los primeros 1000 caracteres
-    const cleanText = text.substring(0, 1000);
+    // MyMemory tiene un límite estricto de 500 caracteres por consulta gratuita, por lo que tomamos los primeros 450
+    const cleanText = text.substring(0, 450);
     const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(cleanText)}&langpair=en|es`);
     if (res.ok) {
       const data = await res.json();
       if (data && data.responseData && data.responseData.translatedText) {
         let result = data.responseData.translatedText;
-        if (text.length > 1000) {
+        // Si MyMemory devolvió un error de límite en su JSON, caemos en fallback
+        if (result.toUpperCase().includes("LIMIT EXCEEDED") || result.toUpperCase().includes("MAX ALLOWED QUERY")) {
+          return text; // Devolver texto original en inglés
+        }
+        if (text.length > 450) {
           result += "... (Ver descripción completa en inglés en TheSportsDB)";
         }
         return result;
@@ -236,6 +250,7 @@ export default async function handler(req, res) {
         return {
           strPlayer: wp.strPlayer,
           strPosition: wp.strPosition,
+          strJersey: wp.strJersey || "",
           strCutout: photo
         };
       });
@@ -244,6 +259,7 @@ export default async function handler(req, res) {
       finalPlayersList = sportsDbPlayers.map(p => ({
         strPlayer: p.strPlayer,
         strPosition: "Jugador", // TheSportsDB no da posición simple aquí
+        strJersey: "",
         strCutout: p.strCutout
       }));
     }
