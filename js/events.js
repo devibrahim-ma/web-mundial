@@ -273,7 +273,8 @@ export function setupEventListeners() {
                     const card = document.createElement('div');
                     card.className = 'player-card';
                     
-                    const photoSrc = p.strCutout || p.strThumb || 'https://www.thesportsdb.com/images/media/player/cutout/default.png';
+                    const defaultPhoto = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCcgZmlsbD0ncmdiYSgyNTUsMjU1LDI1NSwwLjE1KSc+PGNpcmNsZSBjeD0nMTInIGN5PSc4JyByPSc0Jy8+PHBhdGggZD0nTTEyIDE0Yy02LjEgMC04IDQtOCA0djJoMTZ2LTJzLTEuOS00LTgtNHonLz48L3N2Zz4=";
+                    const photoSrc = p.strCutout || p.strThumb || defaultPhoto;
                     
                     // Traducir roles para una experiencia en español impecable
                     let pos = p.strPosition || 'Jugador';
@@ -285,7 +286,7 @@ export function setupEventListeners() {
                     const jerseyHTML = p.strJersey ? `<span class="player-jersey">${p.strJersey}</span>` : '';
                     card.innerHTML = `
                         <div class="player-photo-container">
-                            <img class="player-photo" src="${photoSrc}" alt="${p.strPlayer}" onerror="this.src='https://www.thesportsdb.com/images/media/player/cutout/default.png'">
+                            <img class="player-photo" src="${photoSrc}" alt="${p.strPlayer}" onerror="this.onerror=null; this.src='${defaultPhoto}';">
                             ${jerseyHTML}
                         </div>
                         <div class="player-name" title="${p.strPlayer}">${p.strPlayer}</div>
