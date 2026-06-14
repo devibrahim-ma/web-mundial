@@ -328,12 +328,15 @@ export class StateService {
         this.apiSyncStatus.set('API Token no configurado en Firebase');
         return;
       }
-      const response = await fetch(`/api/matches?token=${encodeURIComponent(token)}`);
+      // Añadimos &_ts=Date.now() para romper cualquier caché del navegador o de la CDN de Vercel
+      const response = await fetch(`/api/matches?token=${encodeURIComponent(token)}&_ts=${Date.now()}`);
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
       }
       const data = await response.json();
+      console.log('Datos brutos recibidos de la API:', data);
       if (data && data.matches) {
+        console.log(`Se han encontrado ${data.matches.length} partidos en la API.`);
         this.apiMatchesList.set(data.matches);
         localStorage.setItem('wc2026_api_matches', JSON.stringify(data.matches));
         
@@ -581,7 +584,7 @@ export class StateService {
     ];
   });
 
-  // Central dynamic match resolver
+ // Central dynamic match resolver
   getMatchById(matchId: string): Match | null {
     const activeId = this.activeProfileId();
     if (matchId.startsWith('R32-')) {
@@ -655,12 +658,90 @@ export class StateService {
     return null;
   }
 
-  // Static helper to avoid infinite recursion when updating real results structure inside syncApi
   private getMatchByIdStatic(matchId: string, profileId: number | 'real' | 'calendar', tempRealResults: Record<string, MatchResult>): Match | null {
+    // 1. Si es de la Ronda de 32 (Dieciseisavos), delegamos en el computado normal
     if (matchId.startsWith('R32-')) {
-      // In static context, we don't have access to active group completion unless we assume it's incomplete or evaluate standings
-      return null; 
+      return this.r32Matches().find(m => m.id === matchId) || null;
     }
+
+    // Helper interno idéntico a tu getMatchById pero usando el objeto temporal tempRealResults
+    const resolveWinner = (mId: string) => {
+      const matchObj = mId.startsWith('R32-') 
+        ? this.r32Matches().find(m => m.id === mId) 
+        : this.getMatchByIdStatic(mId, profileId, tempRealResults);
+        
+      if (!matchObj) return `Ganador ${this.getMatchLabel(mId)}`;
+
+      const res = tempRealResults[mId];
+      if (res && res.score1 !== null && res.score2 !== null) {
+        const s1 = Number(res.score1);
+        const s2 = Number(res.score2);
+        if (s1 > s2) return matchObj.home;
+        if (s1 < s2) return matchObj.away;
+        if (s1 === s2) {
+          if (res.penaltyWinner === 1) return matchObj.home;
+          if (res.penaltyWinner === 2) return matchObj.away;
+        }
+      }
+      return `Ganador ${this.getMatchLabel(mId)}`;
+    };
+
+    const resolveLoser = (mId: string) => {
+      const matchObj = this.getMatchByIdStatic(mId, profileId, tempRealResults);
+      const winner = resolveWinner(mId);
+      if (!matchObj || winner.startsWith('Ganador')) return `Perdedor ${this.getMatchLabel(mId)}`;
+      return matchObj.home === winner ? matchObj.away : matchObj.home;
+    };
+
+    // 2. Resolver el resto de fases usando la lógica estática/temporal
+    if (matchId.startsWith('R16-')) {
+      const index = parseInt(matchId.split('-')[1]);
+      return {
+        id: matchId,
+        home: resolveWinner(`R32-${(index * 2) - 1}`),
+        away: resolveWinner(`R32-${index * 2}`),
+        label: `Octavos Partido ${index}`
+      };
+    }
+
+    if (matchId.startsWith('QF-')) {
+      const index = parseInt(matchId.split('-')[1]);
+      return {
+        id: matchId,
+        home: resolveWinner(`R16-${(index * 2) - 1}`),
+        away: resolveWinner(`R16-${index * 2}`),
+        label: `Cuartos Partido ${index}`
+      };
+    }
+
+    if (matchId.startsWith('SF-')) {
+      const index = parseInt(matchId.split('-')[1]);
+      return {
+        id: matchId,
+        home: resolveWinner(`QF-${(index * 2) - 1}`),
+        away: resolveWinner(`QF-${index * 2}`),
+        label: `Semifinal ${index}`
+      };
+    }
+
+    if (matchId === '3RD') {
+      return {
+        id: '3RD',
+        home: resolveLoser('SF-1'),
+        away: resolveLoser('SF-2'),
+        label: 'Tercer Puesto'
+      };
+    }
+
+    if (matchId === 'FINAL') {
+      return {
+        id: 'FINAL',
+        home: resolveWinner('SF-1'),
+        away: resolveWinner('SF-2'),
+        label: 'Final'
+      };
+    }
+
     return null;
   }
 
