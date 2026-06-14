@@ -3,11 +3,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist/web-mundial/browser",
   "framework": "angular",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "vercel-node@20.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
