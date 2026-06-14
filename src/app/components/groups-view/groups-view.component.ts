@@ -437,9 +437,10 @@ export class GroupsViewComponent {
     let end = this.state.calendarVisibleEnd();
 
     if (start === null || end === null || start >= list.length || end >= list.length) {
-      this.initializeCalendarRangeStatic(list);
-      start = this.state.calendarVisibleStart();
-      end = this.state.calendarVisibleEnd();
+      setTimeout(() => {
+        this.initializeCalendarRangeStatic(list);
+      });
+      return list.slice(0, 5);
     }
 
     if (start !== null && end !== null) {
