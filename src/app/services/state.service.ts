@@ -1073,6 +1073,7 @@ export class StateService {
       this.teamsCache[teamId] = data;
       this.teamInfoData.set(data);
       this.teamInfoLoading.set(false);
+      this.lazyLoadMissingPlayerPhotos(teamId);
     } catch (error) {
       console.warn('API local no disponible, utilizando fallback directo a TheSportsDB...', error);
       // Fallback a TheSportsDB directo
@@ -1219,6 +1220,7 @@ export class StateService {
           this.teamsCache[teamId] = consolidated;
           this.teamInfoData.set(consolidated);
           this.teamInfoLoading.set(false);
+          this.lazyLoadMissingPlayerPhotos(teamId);
         } else {
           throw new Error('Equipo no encontrado en TheSportsDB');
         }
@@ -1232,5 +1234,68 @@ export class StateService {
 
   closeTeamInfoModal() {
     this.isTeamInfoModalOpen.set(false);
+  }
+
+  async lazyLoadMissingPlayerPhotos(teamId: number) {
+    const data = this.teamsCache[teamId];
+    if (!data || !data.players || data.players.length === 0) return;
+
+    const missing = data.players.filter((p: any) => !p.strCutout);
+    if (missing.length === 0) return;
+
+    const PLAYER_NAME_OVERRIDES: Record<string, string> = {
+      "Rodri": "Rodrigo Hernández Cascante",
+      "Pedri": "Pedro González López",
+      "Gavi": "Pablo Martín Páez Gavira",
+      "Vitinha": "Vítor Machado Ferreira",
+      "Jota": "Diogo Jota",
+      "Beto": "Beto Norberto",
+      "Neymar": "Neymar da Silva Santos Júnior",
+      "Raphinha": "Raphael Dias Belloli"
+    };
+
+    const cleanNameStr = (n: string) => n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "").trim();
+
+    for (const player of missing) {
+      if (!this.isTeamInfoModalOpen() || this.teamInfoData()?.idTeam !== data.idTeam) {
+        break;
+      }
+
+      const searchQuery = PLAYER_NAME_OVERRIDES[player.strPlayer] || player.strPlayer;
+      try {
+        const url = `https://www.thesportsdb.com/api/v1/json/123/searchplayers.php?p=${encodeURIComponent(searchQuery)}`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const searchData = await res.json();
+          if (searchData && searchData.player && searchData.player.length > 0) {
+            const activePlayers = searchData.player.filter((p: any) => {
+              const teamName = p.strTeam || "";
+              return !teamName.startsWith('_') && !teamName.toLowerCase().includes('retired');
+            });
+
+            if (activePlayers.length > 0) {
+              const matchedPlayer = activePlayers.find((p: any) => {
+                const cDb = cleanNameStr(p.strPlayer);
+                const cWp = cleanNameStr(player.strPlayer);
+                const cOverride = PLAYER_NAME_OVERRIDES[player.strPlayer] ? cleanNameStr(PLAYER_NAME_OVERRIDES[player.strPlayer]) : "";
+                return cWp.includes(cDb) || cDb.includes(cWp) || (cOverride && (cOverride.includes(cDb) || cOverride.includes(cWp)));
+              });
+
+              const p = matchedPlayer || activePlayers[0];
+              const photoUrl = p.strCutout || p.strThumb || "";
+              
+              if (photoUrl) {
+                player.strCutout = photoUrl;
+                this.teamInfoData.set({ ...data });
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Error lazy loading photo for:', player.strPlayer, err);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
   }
 }
