@@ -405,10 +405,12 @@ export class StateService {
               !localMatch.home.includes('Clasificado') && !localMatch.home.includes('Perdedor')) {
             
             const apiMatch = data.matches.find((m: any) => {
-              const homeTLA = m.homeTeam?.tla;
-              const awayTLA = m.awayTeam?.tla;
-              return (homeTLA === localMatch.home && awayTLA === localMatch.away) ||
-                     (homeTLA === localMatch.away && awayTLA === localMatch.home);
+              const homeTLA = this.normalizeTLA(m.homeTeam?.tla);
+              const awayTLA = this.normalizeTLA(m.awayTeam?.tla);
+              const localHome = this.normalizeTLA(localMatch.home);
+              const localAway = this.normalizeTLA(localMatch.away);
+              return (homeTLA === localHome && awayTLA === localAway) ||
+                     (homeTLA === localAway && awayTLA === localHome);
             });
 
             if (apiMatch && (apiMatch.status === 'FINISHED' || apiMatch.status === 'IN_PLAY' || apiMatch.status === 'PAUSED')) {
@@ -491,9 +493,11 @@ export class StateService {
     if (!localMatch) return false;
     
     const apiMatch = this.apiMatchesList().find(m => {
-      const h = m.homeTeam?.tla;
-      const a = m.awayTeam?.tla;
-      return (h === localMatch.home && a === localMatch.away) || (h === localMatch.away && a === localMatch.home);
+      const h = this.normalizeTLA(m.homeTeam?.tla);
+      const a = this.normalizeTLA(m.awayTeam?.tla);
+      const localHome = this.normalizeTLA(localMatch.home);
+      const localAway = this.normalizeTLA(localMatch.away);
+      return (h === localHome && a === localAway) || (h === localAway && a === localHome);
     });
 
     if (apiMatch?.utcDate) {
@@ -1041,6 +1045,14 @@ export class StateService {
     return list;
   });
 
+  normalizeTLA(tla: string | undefined): string {
+    if (!tla) return '';
+    const upper = tla.toUpperCase().trim();
+    if (upper === 'CUR') return 'CUW';
+    if (upper === 'URY') return 'URU';
+    return upper;
+  }
+
   // --- Helper to get team info dynamically ---
   getTeamInfo(teamCode: string): Team & { isPlaceholder?: boolean } {
     if (!teamCode) return { name: 'Por decidir', flag: '', isPlaceholder: true };
@@ -1050,7 +1062,8 @@ export class StateService {
       return { name: teamCode, flag: '', isPlaceholder: true };
     }
 
-    const t = TEAMS[teamCode];
+    const normalized = this.normalizeTLA(teamCode);
+    const t = TEAMS[normalized];
     if (t) return t;
 
     return { name: teamCode, flag: '', isPlaceholder: true };
@@ -1073,6 +1086,7 @@ export class StateService {
 
   async openTeamInfo(teamId: number, teamTla: string) {
     if (!teamId) return;
+    teamTla = this.normalizeTLA(teamTla);
     this.isTeamInfoModalOpen.set(true);
     this.teamInfoLoading.set(true);
     this.teamInfoError.set(false);
