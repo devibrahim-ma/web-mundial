@@ -160,7 +160,7 @@ export function updateActiveProfileUI() {
             if (gridContent) gridContent.classList.remove('full-width');
         } else {
             if (groupSel) groupSel.style.display = 'none';
-            if (koSel) koSel.style.display = 'block';
+            if (koSel) koSel.style.display = 'none';
             if (standingCol) standingCol.style.display = 'none';
             if (gridContent) gridContent.classList.add('full-width');
         }
@@ -175,7 +175,7 @@ export function updateActiveProfileUI() {
             if (gridContent) gridContent.classList.remove('full-width');
         } else {
             if (groupSel) groupSel.style.display = 'none';
-            if (koSel) koSel.style.display = 'block';
+            if (koSel) koSel.style.display = 'none';
             if (standingCol) standingCol.style.display = 'none';
             if (gridContent) gridContent.classList.add('full-width');
         }

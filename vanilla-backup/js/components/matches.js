@@ -238,27 +238,8 @@ export function renderMatches() {
         if (groupTitle) groupTitle.textContent = `Grupo ${state.activeGroupId} - Partidos`;
         listToRender = MATCHES[state.activeGroupId];
     } else {
-        let roundName = "";
-        let matchIds = [];
-        if (state.activeKnockoutRound === 'R32') {
-            roundName = "Dieciseisavos de Final (R32)";
-            for (let i = 1; i <= 16; i++) matchIds.push(`R32-${i}`);
-        } else if (state.activeKnockoutRound === 'R16') {
-            roundName = "Octavos de Final (R16)";
-            for (let i = 1; i <= 8; i++) matchIds.push(`R16-${i}`);
-        } else if (state.activeKnockoutRound === 'QF') {
-            roundName = "Cuartos de Final";
-            for (let i = 1; i <= 4; i++) matchIds.push(`QF-${i}`);
-        } else if (state.activeKnockoutRound === 'SF') {
-            roundName = "Semifinales";
-            matchIds = ['SF-1', 'SF-2'];
-        } else if (state.activeKnockoutRound === 'FINAL') {
-            roundName = "Finales";
-            matchIds = ['3RD', 'FINAL'];
-        }
-
-        if (groupTitle) groupTitle.textContent = roundName;
-        listToRender = matchIds.map(mId => getMatchById(mId, state.activeProfileId));
+        renderBracket(container, isAdmin);
+        return;
     }
 
     listToRender.forEach(match => {
@@ -308,7 +289,7 @@ export function renderMatches() {
             weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
             const dayMonth = matchDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
             const timeStr = matchDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-            const statusText = isStarted ? "🔒 Cerrado" : `${weekday}, ${dayMonth} - ${timeStr}`;
+            const statusText = isStarted ? "Cerrado" : `${weekday}, ${dayMonth} - ${timeStr}`;
             const statusClass = isStarted ? "locked" : "upcoming";
             matchDateHTML = `<span class="match-date-badge ${statusClass}">${statusText}</span>`;
         }
@@ -571,4 +552,359 @@ export function updateSingleMatchFeedback(matchId, score1, score2) {
         feedbackRow.innerHTML = html;
         card.appendChild(feedbackRow);
     }
+}
+
+function renderBracket(container, isAdmin) {
+    const groupTitle = document.getElementById('selected-group-title');
+    if (groupTitle) groupTitle.textContent = "Fase Final - Cuadro Eliminatorio";
+
+    container.innerHTML = `
+        <div class="bracket-view-container" style="position: relative; width: 100%;">
+            <button class="bracket-scroll-btn scroll-left" id="btn-bracket-scroll-left" style="display: none;">&lt;</button>
+            <button class="bracket-scroll-btn scroll-right" id="btn-bracket-scroll-right" style="display: none;">&gt;</button>
+            <div class="bracket-wrapper" id="bracket-scroll-wrapper">
+                <div class="bracket-container">
+                    <div class="bracket-column r32-column left-side">
+                        ${renderBracketMatchHTML('R32-1', isAdmin)}
+                        ${renderBracketMatchHTML('R32-2', isAdmin)}
+                        ${renderBracketMatchHTML('R32-3', isAdmin)}
+                        ${renderBracketMatchHTML('R32-4', isAdmin)}
+                        ${renderBracketMatchHTML('R32-5', isAdmin)}
+                        ${renderBracketMatchHTML('R32-6', isAdmin)}
+                        ${renderBracketMatchHTML('R32-7', isAdmin)}
+                        ${renderBracketMatchHTML('R32-8', isAdmin)}
+                    </div>
+                    <div class="bracket-column r16-column left-side">
+                        ${renderBracketMatchHTML('R16-1', isAdmin)}
+                        ${renderBracketMatchHTML('R16-2', isAdmin)}
+                        ${renderBracketMatchHTML('R16-3', isAdmin)}
+                        ${renderBracketMatchHTML('R16-4', isAdmin)}
+                    </div>
+                    <div class="bracket-column qf-column left-side">
+                        ${renderBracketMatchHTML('QF-1', isAdmin)}
+                        ${renderBracketMatchHTML('QF-2', isAdmin)}
+                    </div>
+                    <div class="bracket-column sf-column left-side">
+                        ${renderBracketMatchHTML('SF-1', isAdmin)}
+                    </div>
+                    
+                    <div class="bracket-column center-column">
+                        <div class="center-round-title">FINAL</div>
+                        ${renderBracketMatchHTML('FINAL', isAdmin)}
+                        
+                        <div class="bracket-cup-wrapper">
+                            <img src="assets/copa.png" class="bracket-cup-img" alt="Copa del Mundo">
+                        </div>
+                        
+                        <div class="center-round-title">TERCER PUESTO</div>
+                        ${renderBracketMatchHTML('3RD', isAdmin)}
+                    </div>
+                    
+                    <div class="bracket-column sf-column right-side">
+                        ${renderBracketMatchHTML('SF-2', isAdmin)}
+                    </div>
+                    <div class="bracket-column qf-column right-side">
+                        ${renderBracketMatchHTML('QF-3', isAdmin)}
+                        ${renderBracketMatchHTML('QF-4', isAdmin)}
+                    </div>
+                    <div class="bracket-column r16-column right-side">
+                        ${renderBracketMatchHTML('R16-5', isAdmin)}
+                        ${renderBracketMatchHTML('R16-6', isAdmin)}
+                        ${renderBracketMatchHTML('R16-7', isAdmin)}
+                        ${renderBracketMatchHTML('R16-8', isAdmin)}
+                    </div>
+                    <div class="bracket-column r32-column right-side">
+                        ${renderBracketMatchHTML('R32-9', isAdmin)}
+                        ${renderBracketMatchHTML('R32-10', isAdmin)}
+                        ${renderBracketMatchHTML('R32-11', isAdmin)}
+                        ${renderBracketMatchHTML('R32-12', isAdmin)}
+                        ${renderBracketMatchHTML('R32-13', isAdmin)}
+                        ${renderBracketMatchHTML('R32-14', isAdmin)}
+                        ${renderBracketMatchHTML('R32-15', isAdmin)}
+                        ${renderBracketMatchHTML('R32-16', isAdmin)}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    bindBracketEventListeners(container, isAdmin);
+    setupBracketScrollButtons(container);
+}
+
+function renderBracketMatchHTML(matchId, isAdmin) {
+    const match = getMatchById(matchId, state.activeProfileId);
+    if (!match) return '';
+
+    let val1 = "";
+    let val2 = "";
+    let penaltyWinner = null;
+
+    if (isAdmin) {
+        if (state.realResults[match.id]) {
+            val1 = state.realResults[match.id].score1 !== null ? state.realResults[match.id].score1 : "";
+            val2 = state.realResults[match.id].score2 !== null ? state.realResults[match.id].score2 : "";
+            penaltyWinner = state.realResults[match.id].penaltyWinner || null;
+        }
+    } else {
+        const profile = state.profiles.find(p => p.id === state.activeProfileId);
+        if (profile && profile.predictions[match.id]) {
+            val1 = profile.predictions[match.id].score1 !== null ? profile.predictions[match.id].score1 : "";
+            val2 = profile.predictions[match.id].score2 !== null ? profile.predictions[match.id].score2 : "";
+            penaltyWinner = profile.predictions[match.id].penaltyWinner || null;
+        }
+    }
+
+    const apiMatch = (state.apiMatchesList || []).find(m => {
+        const h = m.homeTeam && m.homeTeam.tla;
+        const a = m.awayTeam && m.awayTeam.tla;
+        return (h === match.home && a === match.away) || (h === match.away && a === match.home);
+    });
+    const matchDate = apiMatch ? new Date(apiMatch.utcDate) : null;
+    const isStarted = matchDate && matchDate < new Date();
+
+    const isEditable = (state.userRole === 'admin');
+
+    const homeTeam = getTeamInfo(match.home, state.activeProfileId);
+    const awayTeam = getTeamInfo(match.away, state.activeProfileId);
+
+    const isDraw = val1 !== "" && val2 !== "" && parseInt(val1) === parseInt(val2);
+    const isHomeSelectable = isDraw && !homeTeam.isPlaceholder && state.userRole === 'admin';
+    const isAwaySelectable = isDraw && !awayTeam.isPlaceholder && state.userRole === 'admin';
+
+    const homeFlagImg = homeTeam.flag 
+        ? `<img class="bracket-flag" src="https://flagcdn.com/w20/${homeTeam.flag}.png" alt="${homeTeam.name}">` 
+        : `<img class="bracket-flag" src="https://placehold.co/40x30/333/666?text=?" alt="?">`;
+    const awayFlagImg = awayTeam.flag 
+        ? `<img class="bracket-flag" src="https://flagcdn.com/w20/${awayTeam.flag}.png" alt="${awayTeam.name}">` 
+        : `<img class="bracket-flag" src="https://placehold.co/40x30/333/666?text=?" alt="?">`;
+
+    let homeTeamClass = "bracket-match-team team-home";
+    if (penaltyWinner === 1) homeTeamClass += " penalty-winner";
+    let awayTeamClass = "bracket-match-team team-away";
+    if (penaltyWinner === 2) awayTeamClass += " penalty-winner";
+
+    let dateStr = "";
+    if (matchDate) {
+        const dayMonth = matchDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+        const timeStr = matchDate.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        dateStr = isStarted ? "Cerrado" : `${dayMonth} - ${timeStr}`;
+    } else {
+        dateStr = match.label;
+    }
+
+    let feedbackHTML = '';
+    if (!isAdmin) {
+        const real = state.realResults[match.id];
+        const hasReal = real && real.score1 !== null && real.score2 !== null;
+        const hasPred = val1 !== "" && val2 !== "";
+
+        if (hasReal) {
+            let ptsText = "0 pts";
+            let ptsClass = "fail";
+
+            if (hasPred) {
+                const p1 = parseInt(val1);
+                const p2 = parseInt(val2);
+                const r1 = parseInt(real.score1);
+                const r2 = parseInt(real.score2);
+
+                let isPerfect = (p1 === r1 && p2 === r2);
+                if (isPerfect && p1 === p2) {
+                    isPerfect = (penaltyWinner === real.penaltyWinner);
+                }
+
+                if (isPerfect) {
+                    ptsText = "+3 Exacto";
+                    ptsClass = "perfect";
+                } else {
+                    const predWinner = getKnockoutWinner(match.id, state.activeProfileId);
+                    const realWinner = getKnockoutWinner(match.id, 'real');
+
+                    if (predWinner && realWinner && predWinner === realWinner) {
+                        ptsText = "+1 Ganador";
+                        ptsClass = "outcome";
+                    }
+                }
+            }
+            feedbackHTML = `
+                <div class="bracket-match-feedback">
+                    <span class="real-badge">Real: ${real.score1}-${real.score2}</span>
+                    <span class="points-badge ${ptsClass}">${ptsText}</span>
+                </div>
+            `;
+        }
+    }
+
+    const homeInfoBtn = (!homeTeam.isPlaceholder && homeTeam.sportsDbId)
+        ? `<button class="team-info-btn" data-team-id="${homeTeam.sportsDbId}" data-team-tla="${match.home}" title="Informacion de ${homeTeam.name}" style="padding: 2px; margin: 0 4px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" style="width: 12px; height: 12px;">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+            </svg>
+           </button>`
+        : '';
+
+    const awayInfoBtn = (!awayTeam.isPlaceholder && awayTeam.sportsDbId)
+        ? `<button class="team-info-btn" data-team-id="${awayTeam.sportsDbId}" data-team-tla="${match.away}" title="Informacion de ${awayTeam.name}" style="padding: 2px; margin: 0 4px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16" style="width: 12px; height: 12px;">
+                <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/>
+                <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/>
+            </svg>
+           </button>`
+        : '';
+
+    return `
+        <div class="bracket-match ${ (val1 !== "" && val2 !== "") ? 'has-prediction' : ''}" id="card-${match.id}">
+            <div class="bracket-match-date">${dateStr}</div>
+            <div class="${homeTeamClass}">
+                <div class="bracket-team-info">
+                    ${homeFlagImg}
+                    <span class="bracket-team-name ${isHomeSelectable ? 'selectable' : ''} ${homeTeam.isPlaceholder ? 'placeholder-team' : ''}" 
+                        id="team-home-name-${match.id}" 
+                        title="${homeTeam.name}">${homeTeam.name}</span>
+                    ${homeInfoBtn}
+                </div>
+                <input type="number" min="0" max="99" class="bracket-score-input" 
+                    id="input-${match.id}-1" 
+                    value="${val1}" 
+                    placeholder="-"
+                    data-match-id="${match.id}" 
+                    data-team-pos="1"
+                    ${isEditable ? '' : 'disabled'}>
+            </div>
+            <div class="${awayTeamClass}">
+                <div class="bracket-team-info">
+                    ${awayFlagImg}
+                    <span class="bracket-team-name ${isAwaySelectable ? 'selectable' : ''} ${awayTeam.isPlaceholder ? 'placeholder-team' : ''}" 
+                        id="team-away-name-${match.id}" 
+                        title="${awayTeam.name}">${awayTeam.name}</span>
+                    ${awayInfoBtn}
+                </div>
+                <input type="number" min="0" max="99" class="bracket-score-input" 
+                    id="input-${match.id}-2" 
+                    value="${val2}" 
+                    placeholder="-"
+                    data-match-id="${match.id}" 
+                    data-team-pos="2"
+                    ${isEditable ? '' : 'disabled'}>
+            </div>
+            ${feedbackHTML}
+        </div>
+    `;
+}
+
+function bindBracketEventListeners(container, isAdmin) {
+    const inputs = container.querySelectorAll('.bracket-score-input');
+    inputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            const matchId = e.target.getAttribute('data-match-id');
+            const pos = parseInt(e.target.getAttribute('data-team-pos'));
+            const val = e.target.value.trim();
+            const score = val === "" ? null : parseInt(val);
+
+            const otherPos = pos === 1 ? 2 : 1;
+            const otherInput = container.querySelector(`#input-${matchId}-${otherPos}`);
+            const otherVal = otherInput ? otherInput.value.trim() : "";
+            const otherScore = otherVal === "" ? null : parseInt(otherVal);
+
+            const score1 = pos === 1 ? score : otherScore;
+            const score2 = pos === 2 ? score : otherScore;
+
+            if (isAdmin) {
+                if (score1 === null && score2 === null) {
+                    delete state.realResults[matchId];
+                } else {
+                    if (!state.realResults[matchId]) state.realResults[matchId] = {};
+                    state.realResults[matchId].score1 = score1;
+                    state.realResults[matchId].score2 = score2;
+                    if (score1 !== null && score2 !== null && score1 !== score2) {
+                        delete state.realResults[matchId].penaltyWinner;
+                    }
+                }
+            } else {
+                const profile = state.profiles.find(p => p.id === state.activeProfileId);
+                if (profile) {
+                    if (score1 === null && score2 === null) {
+                        delete profile.predictions[matchId];
+                    } else {
+                        if (!profile.predictions[matchId]) profile.predictions[matchId] = {};
+                        profile.predictions[matchId].score1 = score1;
+                        profile.predictions[matchId].score2 = score2;
+                        if (score1 !== null && score2 !== null && score1 !== score2) {
+                            delete profile.predictions[matchId].penaltyWinner;
+                        }
+                    }
+                }
+            }
+
+            const card = container.querySelector(`#card-${matchId}`);
+            if (card) {
+                if (score1 !== null && score2 !== null) {
+                    card.classList.add('has-prediction');
+                } else {
+                    card.classList.remove('has-prediction');
+                }
+            }
+
+            saveData();
+            updateLiveCalculations();
+            renderMatches();
+        });
+    });
+
+    const selectables = container.querySelectorAll('.bracket-team-name.selectable');
+    selectables.forEach(nameEl => {
+        nameEl.addEventListener('click', (e) => {
+            const idAttr = e.target.getAttribute('id');
+            const matchId = idAttr.replace('team-home-name-', '').replace('team-away-name-', '');
+            const isHome = idAttr.startsWith('team-home-name-');
+            const winnerIndex = isHome ? 1 : 2;
+            setPenaltyWinner(matchId, winnerIndex);
+        });
+    });
+}
+
+function setupBracketScrollButtons(container) {
+    const wrapper = container.querySelector('#bracket-scroll-wrapper');
+    const btnLeft = container.querySelector('#btn-bracket-scroll-left');
+    const btnRight = container.querySelector('#btn-bracket-scroll-right');
+
+    if (!wrapper || !btnLeft || !btnRight) return;
+
+    const updateVisibility = () => {
+        const scrollLeft = wrapper.scrollLeft;
+        const maxScroll = wrapper.scrollWidth - wrapper.clientWidth;
+
+        if (maxScroll <= 0) {
+            btnLeft.style.display = 'none';
+            btnRight.style.display = 'none';
+            return;
+        }
+
+        btnLeft.style.display = scrollLeft > 10 ? 'flex' : 'none';
+        btnRight.style.display = scrollLeft < maxScroll - 10 ? 'flex' : 'none';
+    };
+
+    wrapper.addEventListener('scroll', updateVisibility);
+
+    // Usar ResizeObserver para recalcular la visibilidad en cuanto las dimensiones se establecen
+    if (window.ResizeObserver) {
+        const observer = new ResizeObserver(() => {
+            updateVisibility();
+        });
+        observer.observe(wrapper);
+    } else {
+        window.addEventListener('resize', updateVisibility);
+    }
+
+    btnLeft.addEventListener('click', () => {
+        wrapper.scrollBy({ left: -400, behavior: 'smooth' });
+    });
+
+    btnRight.addEventListener('click', () => {
+        wrapper.scrollBy({ left: 400, behavior: 'smooth' });
+    });
+
+    setTimeout(updateVisibility, 50);
 }

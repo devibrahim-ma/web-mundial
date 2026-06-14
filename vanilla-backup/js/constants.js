@@ -106,8 +106,8 @@ export const PROFILE_AVATARS = {
     1: "assets/ali.jpeg",
     2: "assets/derdabi.jpeg",
     3: "assets/chakron.jpeg",
-    4: "assets/afassi.jpeg",
-    5: "assets/suli.png.jpg"
+    4: "assets/afassi.jpeg"
+    //5: "assets/suli.png.jpg"
 };
 
 export const FRIEND_THEMES = {
@@ -136,9 +136,10 @@ export const FRIEND_THEMES = {
         bgImage: "assets/theme_es.png",
         gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 234, 0, 0.12) 0%, transparent 50%), #07080f"
     },
-    5: { // Suli
+   /* 5: { // Suli
         flags: ["es", "ma"],
         bgImage: "assets/theme_es.png",
         gradient: "radial-gradient(circle at 10% 20%, rgba(213, 0, 0, 0.18) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(255, 234, 0, 0.12) 0%, transparent 50%), #07080f"
     }
+    */
 };

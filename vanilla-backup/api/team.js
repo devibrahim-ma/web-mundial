@@ -310,7 +310,7 @@ export default async function handler(req, res) {
                               const cleanDb = cleanName(p.strPlayer);
                               const cleanWiki = cleanName(wp.strPlayer);
                               const cleanOverride = PLAYER_NAME_OVERRIDES[wp.strPlayer] ? cleanName(PLAYER_NAME_OVERRIDES[wp.strPlayer]) : "";
-                              return cleanWiki.includes(cleanDb) || cleanDb.includes(cleanWiki) || (cleanOverride && (cleanOverride.includes(cleanDb) || cleanOverride.includes(cleanWiki)));
+                              return cleanWiki.includes(cleanDb) || cleanDb.includes(cleanWiki) || (cleanOverride && (cleanOverride.includes(cleanDb) || cleanDb.includes(cleanOverride)));
                           });
                           const p = matchedPlayer || activePlayers[0];
                           const photoUrl = p.strCutout || p.strThumb || "";
@@ -370,3 +370,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: error.message });
   }
 }
+
