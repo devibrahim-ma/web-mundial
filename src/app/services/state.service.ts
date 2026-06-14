@@ -426,7 +426,8 @@ export class StateService {
         update(ref(this.db, 'mundial_global'), {
           realResults: updatedReal,
           lastApiFetchTime: this.lastApiFetchTime(),
-          apiSyncStatus: syncMessage
+          apiSyncStatus: syncMessage,
+          apiMatchesList: data.matches
         });
       }
     } catch (e: any) {
