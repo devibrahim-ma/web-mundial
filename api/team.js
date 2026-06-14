@@ -285,80 +285,14 @@ export default async function handler(req, res) {
     // Unir la plantilla completa de Wikipedia con las fotos oficiales de TheSportsDB
     let finalPlayersList = [];
     if (wikiPlayers && wikiPlayers.length > 0) {
-      const playersToSearch = [];
-
       for (const wp of wikiPlayers) {
         const photo = findMatchingPhoto(wp.strPlayer, sportsDbPlayers);
-        if (photo) {
-          finalPlayersList.push({
-            strPlayer: wp.strPlayer,
-            strPosition: wp.strPosition,
-            strJersey: wp.strJersey || "",
-            strCutout: photo
-          });
-        } else {
-          // No está en la lista de 10. ¿Está en el cache del servidor?
-          const cleanWikiName = cleanName(wp.strPlayer);
-          if (playerPhotosCache[cleanWikiName] !== undefined) {
-             finalPlayersList.push({
-               strPlayer: wp.strPlayer,
-               strPosition: wp.strPosition,
-               strJersey: wp.strJersey || "",
-               strCutout: playerPhotosCache[cleanWikiName]
-             });
-          } else {
-             // Marcar para buscar en TheSportsDB
-             playersToSearch.push(wp);
-          }
-        }
-      }
-
-      // Buscar en paralelo los jugadores restantes
-      if (playersToSearch.length > 0) {
-          const searchPromises = playersToSearch.map(async wp => {
-              const searchQuery = PLAYER_NAME_OVERRIDES[wp.strPlayer] || wp.strPlayer;
-              try {
-                  const res = await fetch(`https://www.thesportsdb.com/api/v1/json/123/searchplayers.php?p=${encodeURIComponent(searchQuery)}`);
-                  if (!res.ok) return { wp, photo: "" };
-                  const data = await res.json();
-                  if (data && data.player && data.player.length > 0) {
-                      // Filtrar jugadores retirados (para evitar falsos positivos con ex-jugadores históricos)
-                      const activePlayers = data.player.filter(p => {
-                          const team = p.strTeam || "";
-                          const isRetired = team.startsWith('_') || team.toLowerCase().includes('retired');
-                          return !isRetired;
-                      });
-
-                      if (activePlayers.length > 0) {
-                          const matchedPlayer = activePlayers.find(p => {
-                              const cleanDb = cleanName(p.strPlayer);
-                              const cleanWiki = cleanName(wp.strPlayer);
-                              const cleanOverride = PLAYER_NAME_OVERRIDES[wp.strPlayer] ? cleanName(PLAYER_NAME_OVERRIDES[wp.strPlayer]) : "";
-                              return cleanWiki.includes(cleanDb) || cleanDb.includes(cleanWiki) || (cleanOverride && (cleanOverride.includes(cleanDb) || cleanOverride.includes(cleanWiki)));
-                          });
-                          const p = matchedPlayer || activePlayers[0];
-                          const photoUrl = p.strCutout || p.strThumb || "";
-                          return { wp, photo: photoUrl };
-                      }
-                  }
-                  return { wp, photo: "" };
-              } catch (err) {
-                  return { wp, photo: "" };
-              }
-          });
-
-          const searchResults = await Promise.all(searchPromises);
-          for (const res of searchResults) {
-              const cleanWikiName = cleanName(res.wp.strPlayer);
-              playerPhotosCache[cleanWikiName] = res.photo; // Guardar en cache del servidor
-              
-              finalPlayersList.push({
-                 strPlayer: res.wp.strPlayer,
-                 strPosition: res.wp.strPosition,
-                 strJersey: res.wp.strJersey || "",
-                 strCutout: res.photo
-              });
-          }
+        finalPlayersList.push({
+          strPlayer: wp.strPlayer,
+          strPosition: wp.strPosition,
+          strJersey: wp.strJersey || "",
+          strCutout: photo || ""
+        });
       }
 
       // Ordenar por número de dorsal
@@ -380,10 +314,16 @@ export default async function handler(req, res) {
       stadiumThumb = await fetchWikipediaPageImage(team.strStadium);
     }
 
+    let equipment = team.strEquipment || "";
+    if (equipment.includes('www.thesportsdb.com')) {
+      equipment = equipment.replace('www.thesportsdb.com', 'r2.thesportsdb.com');
+    }
+
     // Consolidar la respuesta
     const consolidatedData = {
       idTeam: team.idTeam,
       strTeam: team.strTeam,
+      tla: tla ? tla.toUpperCase() : "",
       strTeamBadge: team.strBadge || team.strTeamBadge || "",
       strDescriptionES: description,
       strDescriptionEN: team.strDescriptionEN || "",
@@ -391,7 +331,7 @@ export default async function handler(req, res) {
       strStadiumThumb: stadiumThumb,
       intStadiumCapacity: team.intStadiumCapacity || "",
       strLocation: team.strLocation || "",
-      strEquipment: team.strEquipment || "",
+      strEquipment: equipment,
       players: finalPlayersList
     };
 

@@ -88,7 +88,7 @@ import { FRIEND_THEMES } from './constants/constants';
 
       <!-- Modal para Informacion de Seleccion (API fetch) -->
       <div *ngIf="state.isTeamInfoModalOpen()" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-        <div class="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-card flex flex-col max-h-[85vh]">
+        <div class="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden glass-card flex flex-col max-h-[85vh]">
           
           <!-- Cabecera -->
           <div class="flex items-center justify-between p-5 border-b border-slate-800/80 bg-slate-950/50">
@@ -129,20 +129,34 @@ import { FRIEND_THEMES } from './constants/constants';
             <!-- Datos -->
             <div *ngIf="!state.teamInfoLoading() && !state.teamInfoError() && state.teamInfoData()" class="h-full">
               <!-- Pestaña Info -->
-              <div *ngIf="state.teamInfoActiveTab() === 'info'" class="grid grid-cols-1 md:grid-cols-2 gap-6 h-full items-start">
-                <div class="space-y-3">
+              <div *ngIf="state.teamInfoActiveTab() === 'info'" class="grid grid-cols-1 md:grid-cols-12 gap-6 h-full items-start">
+                <div class="md:col-span-7 space-y-3">
                   <h3 class="text-xs font-bold text-white uppercase tracking-wider border-l-2 border-purple-500 pl-2">Historia y Detalles</h3>
-                  <div class="text-xs text-slate-300 leading-relaxed max-h-60 overflow-y-auto pr-2 no-scrollbar">
+                  <div class="text-xs md:text-sm text-slate-300 leading-relaxed max-h-[50vh] overflow-y-auto pr-2 no-scrollbar">
                     {{ state.teamInfoData()?.strDescriptionES }}
                   </div>
                 </div>
                 
-                <div class="space-y-4">
+                <div class="md:col-span-5 space-y-4">
                   <!-- Estadio -->
                   <div *ngIf="state.teamInfoData()?.strStadium" class="bg-slate-950/40 p-4 rounded-xl border border-slate-850">
                     <h4 class="text-xs font-extrabold text-white mb-2">{{ state.teamInfoData()?.strStadium }}</h4>
-                    <img *ngIf="state.teamInfoData()?.strStadiumThumb" [src]="state.teamInfoData()?.strStadiumThumb" class="w-full h-32 object-cover rounded-lg mb-2 shadow-sm border border-slate-800" alt="Estadio" loading="lazy">
-                    <div class="text-[10px] text-slate-400 space-y-1 font-medium">
+                    <img *ngIf="state.teamInfoData()?.strStadiumThumb" [src]="state.teamInfoData()?.strStadiumThumb" class="w-full h-36 object-cover rounded-lg mb-2 shadow-sm border border-slate-800" alt="Estadio" loading="lazy">
+                    <!-- Fallback Estadio Pitch SVG -->
+                    <div *ngIf="!state.teamInfoData()?.strStadiumThumb" class="w-full h-36 rounded-lg mb-2 border border-slate-800 bg-slate-900/60 flex items-center justify-center relative overflow-hidden animate-pulse">
+                      <svg viewBox="0 0 120 80" class="w-full h-full text-emerald-800/20 stroke-emerald-600/30 fill-none" stroke-width="1.5">
+                        <rect x="5" y="5" width="110" height="70" fill="rgba(16, 185, 129, 0.04)" />
+                        <line x1="60" y1="5" x2="60" y2="75" />
+                        <circle cx="60" cy="40" r="15" />
+                        <circle cx="60" cy="40" r="1" fill="currentColor" />
+                        <rect x="5" y="20" width="18" height="40" />
+                        <rect x="97" y="20" width="18" height="40" />
+                        <rect x="5" y="30" width="6" height="20" />
+                        <rect x="109" y="30" width="6" height="20" />
+                      </svg>
+                      <span class="absolute text-[10px] text-slate-500 font-bold uppercase tracking-wider">Estadio</span>
+                    </div>
+                    <div class="text-[10px] md:text-xs text-slate-400 space-y-1 font-medium">
                       <p>📍 {{ state.teamInfoData()?.strLocation }}</p>
                       <p>👥 Capacidad: {{ state.teamInfoData()?.intStadiumCapacity }}</p>
                     </div>
@@ -155,8 +169,10 @@ import { FRIEND_THEMES } from './constants/constants';
                     </ng-container>
                     <ng-template #svgKit>
                       <div class="relative w-24 h-24 flex items-center justify-center bg-slate-900/60 rounded-xl p-2 border border-slate-800/80">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="w-full h-full text-purple-500/40 fill-current">
-                          <path d="M16,14 L24,6 C26,8 38,8 40,6 L48,14 L58,17 L53,30 L46,26 L46,58 L18,58 L18,26 L11,30 L6,17 Z" />
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="w-full h-full drop-shadow-md">
+                          <path d="M16,14 L24,6 C26,8 38,8 40,6 L48,14 L58,17 L53,30 L46,26 L46,58 L18,58 L18,26 L11,30 L6,17 Z"
+                                [attr.fill]="getTeamColor(state.teamInfoData()?.tla)"
+                                stroke="#1e293b" stroke-width="2" />
                         </svg>
                         <img *ngIf="state.teamInfoData()?.strTeamBadge" [src]="state.teamInfoData()?.strTeamBadge" class="absolute w-8 h-8 object-contain top-[35%] left-[50%] -translate-x-1/2 -translate-y-1/2" alt="Escudo">
                       </div>
@@ -193,6 +209,25 @@ import { FRIEND_THEMES } from './constants/constants';
 export class AppComponent {
   state = inject(StateService);
   private readonly document = inject(DOCUMENT);
+
+  getTeamColor(tla: string | undefined): string {
+    if (!tla) return '#a855f7';
+    const colors: Record<string, string> = {
+      "MEX": "#127C36", "RSA": "#FFF200", "KOR": "#E10600", "CZE": "#D91A23",
+      "CAN": "#FF0000", "BIH": "#002F6C", "QAT": "#8A1538", "SUI": "#D81E05",
+      "BRA": "#FEDF00", "MAR": "#C1272D", "SCO": "#002D62", "HAI": "#00209F",
+      "USA": "#F8FAFC", "PAR": "#D21034", "AUS": "#FEDF00", "TUR": "#E30A17",
+      "GER": "#F8FAFC", "CUW": "#002B7F", "CIV": "#FF8C00", "ECU": "#FEDF00",
+      "NED": "#FF4F00", "JPN": "#000080", "SWE": "#FECC00", "TUN": "#E20E17",
+      "BEL": "#E30613", "EGY": "#C00404", "IRN": "#F8FAFC", "NZL": "#1E293B",
+      "CPV": "#002B7F", "KSA": "#006C35", "ESP": "#C60B1E", "URU": "#4FADDF",
+      "FRA": "#002395", "IRQ": "#F8FAFC", "NOR": "#EF2B2D", "SEN": "#F8FAFC",
+      "ALG": "#F8FAFC", "ARG": "#75AADB", "AUT": "#ED2939", "JOR": "#F8FAFC",
+      "COL": "#FCD116", "COD": "#007FFF", "POR": "#C60B1E", "UZB": "#F8FAFC",
+      "ENG": "#F8FAFC", "CRO": "#FF0000", "GHA": "#F8FAFC", "PAN": "#DA121A"
+    };
+    return colors[tla.toUpperCase()] || '#a855f7';
+  }
 
   constructor() {
     effect(() => {

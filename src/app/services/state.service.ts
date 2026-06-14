@@ -1096,17 +1096,124 @@ export class StateService {
             strCutout: p.strCutout || p.strThumb || ''
           }));
           
+          let finalPlayers = players;
+          try {
+            const WIKIPEDIA_MAPPING: Record<string, string> = {
+              "MEX": "Mexico", "RSA": "South Africa", "KOR": "South Korea", "CZE": "Czech Republic",
+              "CAN": "Canada", "BIH": "Bosnia and Herzegovina", "QAT": "Qatar", "SUI": "Switzerland",
+              "BRA": "Brazil", "MAR": "Morocco", "SCO": "Scotland", "HAI": "Haiti",
+              "USA": "United States", "PAR": "Paraguay", "AUS": "Australia", "TUR": "Turkey",
+              "GER": "Germany", "CUW": "Curaçao", "CIV": "Ivory Coast", "ECU": "Ecuador",
+              "NED": "Netherlands", "JPN": "Japan", "SWE": "Sweden", "TUN": "Tunisia",
+              "BEL": "Belgium", "EGY": "Egypt", "IRN": "Iran", "NZL": "New Zealand",
+              "CPV": "Cape Verde", "KSA": "Saudi Arabia", "ESP": "Spain", "URU": "Uruguay",
+              "FRA": "France", "IRQ": "Iraq", "NOR": "Norway", "SEN": "Senegal",
+              "ALG": "Algeria", "ARG": "Argentina", "AUT": "Austria", "JOR": "Jordan",
+              "COL": "Colombia", "COD": "DR Congo", "POR": "Portugal", "UZB": "Uzbekistan",
+              "ENG": "England", "CRO": "Croatia", "GHA": "Ghana", "PAN": "Panama"
+            };
+            const countryName = WIKIPEDIA_MAPPING[teamTla?.toUpperCase()];
+            if (countryName) {
+              const wikiUrl = `https://en.wikipedia.org/w/api.php?action=parse&page=2026_FIFA_World_Cup_squads&format=json&prop=text&origin=*`;
+              const wikiRes = await fetch(wikiUrl);
+              if (wikiRes.ok) {
+                const wikiData = await wikiRes.json();
+                const html = wikiData?.parse?.text?.['*'];
+                if (html) {
+                  const anchorId = countryName.replace(/ /g, '_');
+                  const regexAnchor = new RegExp(`id="${anchorId}"`, 'i');
+                  const anchorMatch = html.match(regexAnchor);
+                  if (anchorMatch) {
+                    const startIdx = anchorMatch.index;
+                    const tableIdx = html.indexOf('<table', startIdx);
+                    if (tableIdx !== -1) {
+                      const endTableIdx = html.indexOf('</table>', tableIdx);
+                      if (endTableIdx !== -1) {
+                        const tableHtml = html.substring(tableIdx, endTableIdx);
+                        const segments = tableHtml.split(/<tr[^>]*class=["']nat-fs-player["'][^>]*>/);
+                        const wikiPlayers: any[] = [];
+                        for (let i = 1; i < segments.length; i++) {
+                          const seg = segments[i];
+                          const thMatch = seg.match(/<th[^>]*>([\s\S]*?)<\/th>/);
+                          const tdMatches = [...seg.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)];
+                          if (thMatch && tdMatches.length >= 2) {
+                            let name = thMatch[1].replace(/<[^>]+>/g, '').replace(/\(captain\)/i, '').trim();
+                            const rawPos = tdMatches[1][1].replace(/<[^>]+>/g, '').trim();
+                            const posMatch = rawPos.match(/[A-Z]+/i);
+                            let pos = posMatch ? posMatch[0].toUpperCase() : 'GK';
+                            if (pos === 'GK') pos = 'Goalkeeper';
+                            else if (pos === 'DF') pos = 'Defender';
+                            else if (pos === 'MF') pos = 'Midfielder';
+                            else if (pos === 'FW') pos = 'Forward';
+                            const num = tdMatches[0][1].replace(/<[^>]+>/g, '').trim();
+                            wikiPlayers.push({ name, pos, num });
+                          }
+                        }
+                        
+                        if (wikiPlayers.length > 0) {
+                          const cleanNameStr = (n: string) => n.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, "").trim();
+                          finalPlayers = wikiPlayers.map(wp => {
+                            const matchedDb = players.find((dp: any) => {
+                              const cDb = cleanNameStr(dp.strPlayer);
+                              const cWp = cleanNameStr(wp.name);
+                              return cDb.includes(cWp) || cWp.includes(cDb);
+                            });
+                            return {
+                              strPlayer: wp.name,
+                              strPosition: wp.pos,
+                              strJersey: wp.num,
+                              strCutout: matchedDb ? (matchedDb.strCutout || matchedDb.strThumb || '') : ''
+                            };
+                          });
+                          finalPlayers.sort((a: any, b: any) => parseInt(a.strJersey || 99) - parseInt(b.strJersey || 99));
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch (wikiErr) {
+            console.warn('Error fetching Wikipedia squad locally:', wikiErr);
+          }
+          
+          let stadiumThumb = team.strStadiumThumb || "";
+          if ((!stadiumThumb || stadiumThumb.trim() === "") && team.strStadium) {
+            try {
+              const wikiImgUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(team.strStadium)}&prop=pageimages&format=json&pithumbsize=500&redirects=1&origin=*`;
+              const wikiImgRes = await fetch(wikiImgUrl);
+              if (wikiImgRes.ok) {
+                const wikiImgData = await wikiImgRes.json();
+                const pages = wikiImgData?.query?.pages;
+                if (pages) {
+                  const pageId = Object.keys(pages)[0];
+                  if (pageId && pageId !== "-1") {
+                    stadiumThumb = pages[pageId].thumbnail?.source || "";
+                  }
+                }
+              }
+            } catch (imgErr) {
+              console.warn('Error fetching stadium image locally:', imgErr);
+            }
+          }
+          
+          let equipment = team.strEquipment || "";
+          if (equipment.includes('www.thesportsdb.com')) {
+            equipment = equipment.replace('www.thesportsdb.com', 'r2.thesportsdb.com');
+          }
+          
           const consolidated = {
             idTeam: team.idTeam,
             strTeam: team.strTeam,
+            tla: teamTla ? teamTla.toUpperCase() : "",
             strTeamBadge: team.strBadge || team.strTeamBadge || "",
             strDescriptionES: team.strDescriptionES || team.strDescriptionEN || "No hay una descripción disponible.",
             strStadium: team.strStadium || "",
-            strStadiumThumb: team.strStadiumThumb || "",
+            strStadiumThumb: stadiumThumb,
             intStadiumCapacity: team.intStadiumCapacity || "",
             strLocation: team.strLocation || "",
-            strEquipment: team.strEquipment || "",
-            players: players
+            strEquipment: equipment,
+            players: finalPlayers
           };
           
           this.teamsCache[teamId] = consolidated;
