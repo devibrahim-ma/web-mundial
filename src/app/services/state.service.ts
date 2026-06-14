@@ -74,6 +74,16 @@ export class StateService {
       localStorage.setItem(`wc2026_active_phase_${this.groupId}`, this.activePhase());
       localStorage.setItem(`wc2026_active_ko_round_${this.groupId}`, this.activeKnockoutRound());
     });
+
+    // Auto-sync loop (every 60 seconds) once apiToken is loaded
+    effect((onCleanup) => {
+      const token = this.apiToken();
+      if (token) {
+        this.checkAndAutoSyncApi();
+        const interval = setInterval(() => this.checkAndAutoSyncApi(), 60000);
+        onCleanup(() => clearInterval(interval));
+      }
+    });
   }
 
   private initFirebase() {
@@ -318,6 +328,22 @@ export class StateService {
     // Update Firebase
     set(ref(this.db, `groups/${this.groupId}/profiles`), list);
     set(ref(this.db, 'mundial_global/realResults'), {});
+  }
+
+  async checkAndAutoSyncApi() {
+    const token = this.apiToken();
+    if (!token) return;
+
+    const now = Date.now();
+    const lastFetch = this.lastApiFetchTime();
+    // 1-minute cooldown (60,000 ms)
+    if (now - lastFetch < 60000) {
+      const dateStr = new Date(lastFetch).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      this.apiSyncStatus.set(`Sincronizado a las ${dateStr}`);
+      return;
+    }
+
+    await this.syncApiResultsForce();
   }
 
   // --- API Syncing ---
