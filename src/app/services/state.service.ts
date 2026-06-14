@@ -33,6 +33,7 @@ export class StateService {
   readonly teamInfoError = signal<boolean>(false);
   readonly teamInfoData = signal<any>(null);
   readonly teamInfoActiveTab = signal<'info' | 'squad'>('info');
+  readonly kitImageError = signal<boolean>(false);
   private readonly teamsCache: Record<number, any> = {};
 
   // Pagination for Calendar
@@ -1051,6 +1052,7 @@ export class StateService {
     this.teamInfoError.set(false);
     this.teamInfoData.set(null);
     this.teamInfoActiveTab.set('info');
+    this.kitImageError.set(false);
 
     if (this.teamsCache[teamId]) {
       this.teamInfoData.set(this.teamsCache[teamId]);

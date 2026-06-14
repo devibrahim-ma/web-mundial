@@ -49,10 +49,12 @@ import { Match, MatchResult } from '../../models/types';
  
             <div *ngIf="state.apiMatchesList().length > 0" class="space-y-4">
               <!-- Pagina Anterior -->
-              <button *ngIf="showPrevCalendarBtn()" (click)="prevCalendar()" 
-                      class="w-full py-2 bg-slate-900/40 hover:bg-slate-900/80 border border-slate-800 text-xs text-slate-450 font-bold rounded-xl transition-colors duration-150 cursor-pointer">
-                Mostrar partidos anteriores
-              </button>
+              <div *ngIf="showPrevCalendarBtn()" class="flex justify-center">
+                <button (click)="prevCalendar()" 
+                        class="px-4 py-2 bg-slate-900/40 hover:bg-slate-900/80 border border-slate-800 text-xs text-slate-400 font-bold rounded-xl transition-colors duration-150 cursor-pointer">
+                  Mostrar partidos anteriores
+                </button>
+              </div>
  
               <!-- Lista de Partidos del Calendario -->
               <div class="space-y-3">
@@ -94,10 +96,12 @@ import { Match, MatchResult } from '../../models/types';
               </div>
  
               <!-- Pagina Siguiente -->
-              <button *ngIf="showNextCalendarBtn()" (click)="nextCalendar()" 
-                      class="w-full py-2 bg-slate-900/40 hover:bg-slate-900/80 border border-slate-800/60 text-xs text-slate-400 font-bold rounded-xl transition-colors duration-150 cursor-pointer">
-                Mostrar próximos partidos
-              </button>
+              <div *ngIf="showNextCalendarBtn()" class="flex justify-center">
+                <button (click)="nextCalendar()" 
+                        class="px-4 py-2 bg-slate-900/40 hover:bg-slate-900/80 border border-slate-800/60 text-xs text-slate-400 font-bold rounded-xl transition-colors duration-150 cursor-pointer">
+                  Mostrar próximos partidos
+                </button>
+              </div>
             </div>
           </div>
  
@@ -527,7 +531,7 @@ export class GroupsViewComponent {
   }
 
   getApiStatusClass(status: string): string {
-    if (status === 'FINISHED') return 'bg-slate-800 text-slate-400 border-slate-700/60';
+    if (status === 'FINISHED') return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
     if (status === 'IN_PLAY' || status === 'PAUSED') return 'bg-red-500/10 text-red-400 border-red-500/20 animate-pulse';
     return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
   }

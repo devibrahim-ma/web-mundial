@@ -1,5 +1,5 @@
-import { Component, inject, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, computed, effect } from '@angular/core';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { StateService } from './services/state.service';
 import { HeaderComponent } from './components/header/header.component';
 import { ProfilesNavbarComponent } from './components/profiles-navbar/profiles-navbar.component';
@@ -148,9 +148,19 @@ import { FRIEND_THEMES } from './constants/constants';
                     </div>
                   </div>
                   <!-- Equipación -->
-                  <div *ngIf="state.teamInfoData()?.strEquipment" class="bg-slate-950/40 p-4 rounded-xl border border-slate-850 text-center">
+                  <div class="bg-slate-950/40 p-4 rounded-xl border border-slate-850 text-center flex flex-col items-center justify-center min-h-[160px]">
                     <h4 class="text-xs font-extrabold text-white mb-2">Equipación Oficial</h4>
-                    <img [src]="state.teamInfoData()?.strEquipment" class="h-24 object-contain mx-auto" alt="Camiseta" loading="lazy">
+                    <ng-container *ngIf="state.teamInfoData()?.strEquipment && !state.kitImageError(); else svgKit">
+                      <img [src]="state.teamInfoData()?.strEquipment" (error)="state.kitImageError.set(true)" class="h-24 object-contain mx-auto" alt="Camiseta" loading="lazy">
+                    </ng-container>
+                    <ng-template #svgKit>
+                      <div class="relative w-24 h-24 flex items-center justify-center bg-slate-900/60 rounded-xl p-2 border border-slate-800/80">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="w-full h-full text-purple-500/40 fill-current">
+                          <path d="M16,14 L24,6 C26,8 38,8 40,6 L48,14 L58,17 L53,30 L46,26 L46,58 L18,58 L18,26 L11,30 L6,17 Z" />
+                        </svg>
+                        <img *ngIf="state.teamInfoData()?.strTeamBadge" [src]="state.teamInfoData()?.strTeamBadge" class="absolute w-8 h-8 object-contain top-[35%] left-[50%] -translate-x-1/2 -translate-y-1/2" alt="Escudo">
+                      </div>
+                    </ng-template>
                   </div>
                 </div>
               </div>
@@ -158,17 +168,17 @@ import { FRIEND_THEMES } from './constants/constants';
               <!-- Pestaña Plantilla -->
               <div *ngIf="state.teamInfoActiveTab() === 'squad'" class="space-y-4">
                 <h3 class="text-xs font-bold text-white uppercase tracking-wider border-l-2 border-purple-500 pl-2">Jugadores Convocados</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[40vh] overflow-y-auto pr-2 no-scrollbar">
-                  <div *ngFor="let player of state.teamInfoData()?.players" class="bg-slate-950/40 p-2 rounded-xl border border-slate-850 flex items-center gap-2">
-                    <div class="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                      <img *ngIf="player.strCutout" [src]="player.strCutout" class="w-full h-full object-cover" [alt]="player.strPlayer" loading="lazy">
-                      <span *ngIf="!player.strCutout" class="text-slate-600 font-bold text-xs">?</span>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[45vh] overflow-y-auto pr-2 no-scrollbar">
+                  <div *ngFor="let player of state.teamInfoData()?.players" class="bg-slate-950/40 p-3 rounded-xl border border-slate-850 flex items-center gap-3 hover:border-purple-500/30 transition-all duration-200">
+                    <div class="w-14 h-14 rounded-full bg-slate-900 border border-slate-800 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                      <img *ngIf="player.strCutout" [src]="player.strCutout" class="w-full h-full object-cover scale-110" [alt]="player.strPlayer" loading="lazy">
+                      <span *ngIf="!player.strCutout" class="text-slate-600 font-bold text-base">?</span>
                     </div>
                     <div class="min-w-0">
-                      <p class="text-[11px] font-bold text-white truncate" [title]="player.strPlayer">{{ player.strPlayer }}</p>
-                      <p class="text-[9px] text-slate-500 font-semibold">{{ player.strPosition }}</p>
+                      <p class="text-xs md:text-sm font-bold text-white truncate" [title]="player.strPlayer">{{ player.strPlayer }}</p>
+                      <p class="text-[10px] md:text-xs text-slate-500 font-semibold mt-0.5">{{ player.strPosition }}</p>
                     </div>
-                    <span class="ml-auto text-[10px] font-mono font-bold text-slate-500">#{{ player.strJersey || '-' }}</span>
+                    <span class="ml-auto text-xs md:text-sm font-mono font-bold text-slate-500">#{{ player.strJersey || '-' }}</span>
                   </div>
                 </div>
               </div>
@@ -182,6 +192,18 @@ import { FRIEND_THEMES } from './constants/constants';
 })
 export class AppComponent {
   state = inject(StateService);
+  private readonly document = inject(DOCUMENT);
+
+  constructor() {
+    effect(() => {
+      const isOpen = this.state.isTeamInfoModalOpen();
+      if (isOpen) {
+        this.document.body.classList.add('overflow-hidden');
+      } else {
+        this.document.body.classList.remove('overflow-hidden');
+      }
+    });
+  }
 
   // Computed Background styles based on selected profile theme matching the legacy app background styles
   readonly backgroundStyle = computed(() => {

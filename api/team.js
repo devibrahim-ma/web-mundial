@@ -51,6 +51,30 @@ const WIKIPEDIA_MAPPING = {
 
 const playerPhotosCache = {};
 
+async function fetchWikipediaPageImage(title) {
+  if (!title) return "";
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&format=json&pithumbsize=500&redirects=1`;
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": "Mundial2026QuinielaApp/1.0 (https://web-mundial-2026.vercel.app; contact@example.com)"
+      }
+    });
+    if (!res.ok) return "";
+    const data = await res.json();
+    const pages = data?.query?.pages;
+    if (pages) {
+      const pageId = Object.keys(pages)[0];
+      if (pageId && pageId !== "-1") {
+        return pages[pageId].thumbnail?.source || "";
+      }
+    }
+  } catch (e) {
+    console.error("Error fetching Wikipedia page image for:", title, e);
+  }
+  return "";
+}
+
 const PLAYER_NAME_OVERRIDES = {
     // España
     "Rodri": "Rodrigo Hernández Cascante",
@@ -350,6 +374,12 @@ export default async function handler(req, res) {
       }));
     }
 
+    // Obtener imagen del estadio desde Wikipedia si está vacía
+    let stadiumThumb = team.strStadiumThumb || "";
+    if ((!stadiumThumb || stadiumThumb.trim() === "") && team.strStadium) {
+      stadiumThumb = await fetchWikipediaPageImage(team.strStadium);
+    }
+
     // Consolidar la respuesta
     const consolidatedData = {
       idTeam: team.idTeam,
@@ -358,7 +388,7 @@ export default async function handler(req, res) {
       strDescriptionES: description,
       strDescriptionEN: team.strDescriptionEN || "",
       strStadium: team.strStadium || "",
-      strStadiumThumb: team.strStadiumThumb || "",
+      strStadiumThumb: stadiumThumb,
       intStadiumCapacity: team.intStadiumCapacity || "",
       strLocation: team.strLocation || "",
       strEquipment: team.strEquipment || "",
