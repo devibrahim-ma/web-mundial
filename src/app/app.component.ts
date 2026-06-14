@@ -192,7 +192,7 @@ import { FRIEND_THEMES } from './constants/constants';
                     </div>
                     <div class="min-w-0">
                       <p class="text-xs md:text-sm font-bold text-white truncate" [title]="player.strPlayer">{{ player.strPlayer }}</p>
-                      <p class="text-[10px] md:text-xs text-slate-500 font-semibold mt-0.5">{{ player.strPosition }}</p>
+                      <p class="text-[10px] md:text-xs text-slate-500 font-semibold mt-0.5">{{ translatePosition(player.strPosition) }}</p>
                     </div>
                     <span class="ml-auto text-xs md:text-sm font-mono font-bold text-slate-500">#{{ player.strJersey || '-' }}</span>
                   </div>
@@ -227,6 +227,16 @@ export class AppComponent {
       "ENG": "#F8FAFC", "CRO": "#FF0000", "GHA": "#F8FAFC", "PAN": "#DA121A"
     };
     return colors[tla.toUpperCase()] || '#a855f7';
+  }
+
+  translatePosition(pos: string | undefined): string {
+    if (!pos) return 'Jugador';
+    const cleanPos = pos.trim();
+    if (cleanPos === 'Goalkeeper') return 'Portero';
+    if (cleanPos === 'Defender') return 'Defensa';
+    if (cleanPos === 'Midfielder') return 'Centrocampista';
+    if (cleanPos === 'Forward' || cleanPos === 'Attacker') return 'Delantero';
+    return cleanPos;
   }
 
   constructor() {
