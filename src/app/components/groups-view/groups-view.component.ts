@@ -344,22 +344,7 @@ export class GroupsViewComponent {
     return `${count}/6 Pronosticos`;
   }
 
-  // --- Claim Profile Logic ---
-  showClaimBanner(): boolean {
-    const active = this.state.activeProfileId();
-    const myProfile = this.state.myProfileId();
-    if (active === 'real' || active === 'calendar') return false;
-    return myProfile !== active;
-  }
 
-  claimActiveProfile() {
-    const active = this.state.activeProfileId();
-    if (typeof active === 'number') {
-      if (confirm(`¿Reclamar el perfil de ${this.state.activeProfileName()} como tuyo en este navegador?`)) {
-        this.state.claimProfile(active);
-      }
-    }
-  }
 
   // --- Feedback Logic ---
   showFeedbackRow(matchId: string): boolean {

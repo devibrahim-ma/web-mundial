@@ -7,6 +7,7 @@ import { LeaderboardComponent } from './components/leaderboard/leaderboard.compo
 import { GroupStatsComponent } from './components/group-stats/group-stats.component';
 import { GroupsViewComponent } from './components/groups-view/groups-view.component';
 import { BracketViewComponent } from './components/bracket-view/bracket-view.component';
+import { LoginComponent } from './components/login/login.component';
 import { FRIEND_THEMES } from './constants/constants';
 
 @Component({
@@ -19,7 +20,8 @@ import { FRIEND_THEMES } from './constants/constants';
     LeaderboardComponent,
     GroupStatsComponent,
     GroupsViewComponent,
-    BracketViewComponent
+    BracketViewComponent,
+    LoginComponent
   ],
   template: `
     <!-- Contenedor con Fondo Dinamico -->
@@ -35,8 +37,11 @@ import { FRIEND_THEMES } from './constants/constants';
         <p class="text-sm font-semibold tracking-wider uppercase text-slate-400">Descargando datos de la quiniela...</p>
       </div>
 
+      <!-- Pantalla de Login -->
+      <app-login *ngIf="state.isInitialized() && !state.isLoggedIn()"></app-login>
+
       <!-- Contenedor Principal de la App -->
-      <div *ngIf="state.isInitialized()" class="relative z-10 w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex flex-col gap-6">
+      <div *ngIf="state.isInitialized() && state.isLoggedIn()" class="relative z-10 w-full max-w-[1760px] mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8 flex flex-col gap-6">
         
         <!-- Cabecera -->
         <app-header></app-header>

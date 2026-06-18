@@ -23,6 +23,7 @@ export interface Profile {
   id: number;
   name: string;
   predictions: Record<string, MatchResult>;
+  password?: string;
 }
 
 export interface LeaderboardItem {

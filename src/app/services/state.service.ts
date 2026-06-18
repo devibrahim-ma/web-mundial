@@ -26,6 +26,8 @@ export class StateService {
   readonly lastApiFetchTime = signal<number>(0);
   readonly apiToken = signal<string>('');
   readonly isInitialized = signal<boolean>(false);
+  readonly isLoggedIn = signal<boolean>(false);
+  readonly knockoutDeadline = signal<Date>(new Date('2026-06-27T18:00:00Z'));
 
   // --- Teams Info Modal Signals ---
   readonly isTeamInfoModalOpen = signal<boolean>(false);
@@ -51,7 +53,7 @@ export class StateService {
 
   // Check if the current view is editable
   readonly isEditable = computed(() => {
-    return this.userRole() === 'admin';
+    return this.userRole() === 'admin' || this.isMyProfileActive();
   });
 
   // Current Active Profile Name
@@ -99,6 +101,9 @@ export class StateService {
         this.lastApiFetchTime.set(globalData.lastApiFetchTime || 0);
         this.apiSyncStatus.set(globalData.apiSyncStatus || 'Sincronizado');
         this.apiMatchesList.set(globalData.apiMatchesList || []);
+        if (globalData.knockoutDeadline) {
+          this.knockoutDeadline.set(new Date(globalData.knockoutDeadline));
+        }
       }
     });
 
@@ -137,18 +142,30 @@ export class StateService {
   }
 
   private loadStateFromLocalStorage() {
-    // 1. Read Role
-    const savedRole = localStorage.getItem('wc2026_role');
-    if (savedRole === 'admin') {
-      this.userRole.set('admin');
-    } else {
-      this.userRole.set('user');
-    }
+    // Check if we have remember_me active
+    const rememberMe = localStorage.getItem(`wc2026_remember_me_${this.groupId}`);
+    const isLoggedInSession = sessionStorage.getItem(`wc2026_logged_in_${this.groupId}`);
 
-    // 2. Read my claimed profile
-    const savedMyProfile = localStorage.getItem(`wc2026_my_profile_id_${this.groupId}`);
-    if (savedMyProfile !== null) {
-      this.myProfileId.set(parseInt(savedMyProfile));
+    if (rememberMe === 'true' || isLoggedInSession === 'true') {
+      this.isLoggedIn.set(true);
+
+      // 1. Read Role
+      const savedRole = localStorage.getItem('wc2026_role');
+      if (savedRole === 'admin') {
+        this.userRole.set('admin');
+      } else {
+        this.userRole.set('user');
+      }
+
+      // 2. Read my claimed profile
+      const savedMyProfile = localStorage.getItem(`wc2026_my_profile_id_${this.groupId}`);
+      if (savedMyProfile !== null) {
+        this.myProfileId.set(parseInt(savedMyProfile));
+      }
+    } else {
+      this.isLoggedIn.set(false);
+      this.userRole.set('user');
+      this.myProfileId.set(null);
     }
 
     // 3. Read active profile
@@ -226,6 +243,15 @@ export class StateService {
       return;
     }
 
+    // Check lock for knockout matches deadline
+    if (!isAdmin && (matchId.startsWith('R32-') || matchId.startsWith('R16-') || matchId.startsWith('QF-') || matchId.startsWith('SF-') || matchId === '3RD' || matchId === 'FINAL')) {
+      const deadline = this.knockoutDeadline();
+      if (Date.now() > deadline.getTime()) {
+        console.warn(`Intento de edición bloqueado para eliminatorias porque ha pasado la fecha límite.`);
+        return;
+      }
+    }
+
     if (isAdmin) {
       const current = { ...this.realResults() };
       if (score1 === null && score2 === null) {
@@ -262,6 +288,14 @@ export class StateService {
 
   setPenaltyWinner(matchId: string, winnerIndex: number) {
     const isAdmin = this.activeProfileId() === 'real' && this.userRole() === 'admin';
+    if (!isAdmin && (matchId.startsWith('R32-') || matchId.startsWith('R16-') || matchId.startsWith('QF-') || matchId.startsWith('SF-') || matchId === '3RD' || matchId === 'FINAL')) {
+      const deadline = this.knockoutDeadline();
+      if (Date.now() > deadline.getTime()) {
+        console.warn(`Intento de edición de penalti bloqueado porque ha pasado la fecha límite.`);
+        return;
+      }
+    }
+
     if (isAdmin) {
       const current = { ...this.realResults() };
       if (!current[matchId]) current[matchId] = { score1: 0, score2: 0 };
@@ -282,11 +316,84 @@ export class StateService {
     this.saveData();
   }
 
-  claimProfile(profileId: number) {
-    this.myProfileId.set(profileId);
-    localStorage.setItem(`wc2026_my_profile_id_${this.groupId}`, String(profileId));
-    // Switch view to claimed profile
-    this.activeProfileId.set(profileId);
+  login(profileId: number | 'admin', password: string, rememberMe: boolean): boolean {
+    if (profileId === 'admin') {
+      if (password === 'admin2026') {
+        this.userRole.set('admin');
+        this.myProfileId.set(null);
+        this.isLoggedIn.set(true);
+        this.activeProfileId.set('real');
+
+        if (rememberMe) {
+          localStorage.setItem(`wc2026_remember_me_${this.groupId}`, 'true');
+          localStorage.setItem('wc2026_role', 'admin');
+        } else {
+          sessionStorage.setItem(`wc2026_logged_in_${this.groupId}`, 'true');
+          localStorage.setItem('wc2026_role', 'admin');
+        }
+        return true;
+      }
+      return false;
+    }
+
+    const profile = this.profiles().find(p => p.id === profileId);
+    if (!profile || !profile.password) return false;
+
+    if (password === profile.password) {
+      this.userRole.set('user');
+      this.myProfileId.set(profile.id);
+      this.isLoggedIn.set(true);
+      this.activeProfileId.set(profile.id);
+
+      if (rememberMe) {
+        localStorage.setItem(`wc2026_remember_me_${this.groupId}`, 'true');
+        localStorage.setItem(`wc2026_my_profile_id_${this.groupId}`, String(profile.id));
+        localStorage.setItem('wc2026_role', 'user');
+      } else {
+        sessionStorage.setItem(`wc2026_logged_in_${this.groupId}`, 'true');
+        localStorage.setItem(`wc2026_my_profile_id_${this.groupId}`, String(profile.id));
+        localStorage.setItem('wc2026_role', 'user');
+      }
+      return true;
+    }
+
+    return false;
+  }
+
+  async registerPassword(profileId: number, password: string): Promise<boolean> {
+    const list = [...this.profiles()];
+    const p = list.find(pr => pr.id === profileId);
+    if (p) {
+      if (p.password) {
+        return false;
+      }
+      p.password = password;
+      this.profiles.set(list);
+      try {
+        await set(
+          ref(this.db, `groups/${this.groupId}/profiles/${profileId}/password`),
+          password
+        );
+        this.login(profileId, password, true);
+        return true;
+      } catch (err) {
+        console.error('Error al guardar la contraseña en Firebase: ', err);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  logout() {
+    this.isLoggedIn.set(false);
+    this.myProfileId.set(null);
+    this.userRole.set('user');
+    this.activeProfileId.set(0);
+
+    localStorage.removeItem(`wc2026_remember_me_${this.groupId}`);
+    localStorage.removeItem(`wc2026_my_profile_id_${this.groupId}`);
+    localStorage.removeItem('wc2026_role');
+    sessionStorage.removeItem(`wc2026_logged_in_${this.groupId}`);
   }
 
   updateProfileNames(names: string[]) {
