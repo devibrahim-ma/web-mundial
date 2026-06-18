@@ -2,7 +2,6 @@ import { Component, inject, signal, Output, EventEmitter, OnInit } from '@angula
 import { CommonModule } from '@angular/common';
 import { StateService } from '../../services/state.service';
 import { PROFILE_AVATARS } from '../../constants/constants';
-import { Capacitor } from '@capacitor/core';
 
 interface CarouselItem {
   id: number | 'admin';
@@ -34,14 +33,11 @@ interface CarouselItem {
       </defs>
     </svg>
 
-    <div class="carousel-container relative w-full h-80 flex items-center justify-center overflow-visible select-none mt-4"
-         (touchstart)="onTouchStart($event)" 
-         (touchend)="onTouchEnd($event)">
+    <div class="carousel-container relative w-full h-80 flex items-center justify-center overflow-visible select-none mt-4">
       
       <!-- Arrow Left -->
       <button type="button" (click)="rotateLeft()" 
-              [ngClass]="isWeb ? 'flex' : 'hidden md:flex'"
-              class="absolute left-4 z-30 w-10 h-10 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-800 items-center justify-center text-slate-300 hover:text-white transition-all cursor-pointer outline-none">
+              class="flex absolute left-4 z-30 w-10 h-10 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-800 items-center justify-center text-slate-300 hover:text-white transition-all cursor-pointer outline-none">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
           <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
         </svg>
@@ -139,8 +135,7 @@ interface CarouselItem {
 
       <!-- Arrow Right -->
       <button type="button" (click)="rotateRight()" 
-              [ngClass]="isWeb ? 'flex' : 'hidden md:flex'"
-              class="absolute right-4 z-30 w-10 h-10 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-800 items-center justify-center text-slate-300 hover:text-white transition-all cursor-pointer outline-none">
+              class="flex absolute right-4 z-30 w-10 h-10 rounded-full bg-slate-900/80 hover:bg-slate-800 border border-slate-800 items-center justify-center text-slate-300 hover:text-white transition-all cursor-pointer outline-none">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
           <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
         </svg>
@@ -166,7 +161,6 @@ interface CarouselItem {
 })
 export class ProfileCarouselComponent implements OnInit {
   state = inject(StateService);
-  isWeb = !Capacitor.isNativePlatform();
 
   @Output() profileSelected = new EventEmitter<number | 'admin'>();
 

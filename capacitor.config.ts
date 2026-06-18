@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'WebMundial',
   webDir: 'dist/web-mundial/browser',
   server: {
-    url: 'https://web-mundial-2026.vercel.app',
+    url: 'https://web-mundial-lake.vercel.app',
     cleartext: true
   }
 };
