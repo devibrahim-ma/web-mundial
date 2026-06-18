@@ -533,6 +533,11 @@ export class StateService {
     return GROUP_IDS.every(gId => this.isGroupComplete(gId, activeId));
   });
 
+  // Check if all group stage matches are complete in reality
+  readonly realGroupsComplete = computed(() => {
+    return GROUP_IDS.every(gId => this.isGroupComplete(gId, 'real'));
+  });
+
   // Best third-placed teams
   readonly bestThirdPlacedTeams = computed(() => {
     const standings = this.allGroupStandings();
@@ -588,13 +593,64 @@ export class StateService {
   // Round of 32 Matches computed
   readonly r32Matches = computed(() => {
     const activeId = this.activeProfileId();
-    const standings = this.allGroupStandings();
-    const completed = this.allGroupsComplete();
-    const matched = this.matchedThirds();
+    // Si la fase de grupos real está completa, forzamos el uso de los clasificados reales
+    // para que todos los usuarios hagan sus predicciones sobre los partidos reales.
+    const useReal = this.realGroupsComplete() || activeId === 'real' || activeId === 'calendar';
+    const sourceId = useReal ? 'real' : activeId;
 
-    const getWinner = (gId: string) => this.isGroupComplete(gId, activeId) ? standings[gId][0].teamId : `1º Grupo ${gId}`;
-    const getRunner = (gId: string) => this.isGroupComplete(gId, activeId) ? standings[gId][1].teamId : `2º Grupo ${gId}`;
-    const getThird = (wgId: string) => completed ? (matched[wgId] || '3º Clasificado') : `3º Clasificado`;
+    // Calcular clasificaciones para la fuente correspondiente
+    const standings: Record<string, any[]> = {};
+    GROUP_IDS.forEach(gId => {
+      standings[gId] = this.calculateStandingsForGroup(gId, sourceId);
+    });
+
+    const isComplete = (gId: string) => this.isGroupComplete(gId, sourceId);
+    const allComplete = GROUP_IDS.every(gId => isComplete(gId));
+
+    // Calcular mejores terceros localmente para la fuente correspondiente
+    const thirds: any[] = [];
+    if (allComplete) {
+      GROUP_IDS.forEach(gId => {
+        const stands = standings[gId];
+        if (stands && stands.length >= 3) {
+          thirds.push({
+            teamId: stands[2].teamId,
+            pts: stands[2].pts,
+            gd: stands[2].gd,
+            gf: stands[2].gf,
+            groupId: gId
+          });
+        }
+      });
+      thirds.sort((a, b) => {
+        if (b.pts !== a.pts) return b.pts - a.pts;
+        if (b.gd !== a.gd) return b.gd - a.gd;
+        if (b.gf !== a.gf) return b.gf - a.gf;
+        return a.groupId.localeCompare(b.groupId);
+      });
+    }
+    const bestThirds = thirds.slice(0, 8);
+
+    // Mapeo de terceros
+    const winnerGroupsWithThirds = ['E', 'I', 'A', 'L', 'G', 'D', 'B', 'K'];
+    const remainingThirds = [...bestThirds];
+    const matched: Record<string, string | null> = {};
+
+    winnerGroupsWithThirds.forEach(wgId => {
+      if (remainingThirds.length === 0) {
+        matched[wgId] = null;
+        return;
+      }
+      let index = remainingThirds.findIndex(t => t.groupId !== wgId);
+      if (index === -1) index = 0;
+
+      matched[wgId] = remainingThirds[index].teamId;
+      remainingThirds.splice(index, 1);
+    });
+
+    const getWinner = (gId: string) => isComplete(gId) ? standings[gId][0].teamId : `1º Grupo ${gId}`;
+    const getRunner = (gId: string) => isComplete(gId) ? standings[gId][1].teamId : `2º Grupo ${gId}`;
+    const getThird = (wgId: string) => allComplete ? (matched[wgId] || '3º Clasificado') : `3º Clasificado`;
 
     return [
       { id: "R32-1", home: getRunner('A'), away: getRunner('B'), label: "R32 Partido 1" },
