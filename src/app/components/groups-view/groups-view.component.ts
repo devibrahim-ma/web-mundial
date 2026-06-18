@@ -74,7 +74,10 @@ import { Match, MatchResult } from '../../models/types';
                   <div class="flex items-center justify-between flex-grow w-full gap-4">
                     <!-- Local -->
                     <div class="flex items-center justify-end gap-3 flex-1 text-right">
-                      <span class="text-sm font-bold text-slate-200 truncate max-w-[120px] sm:max-w-none">{{ getTeamName(apiMatch.homeTeam?.tla) }}</span>
+                      <span class="text-sm font-bold text-slate-200 truncate max-w-[120px] sm:max-w-none">
+                        <span class="hidden sm:inline">{{ getTeamName(apiMatch.homeTeam?.tla) }}</span>
+                        <span class="inline sm:hidden">{{ getTeamAbbreviation(apiMatch.homeTeam?.tla) }}</span>
+                      </span>
                       <img [src]="getTeamFlagUrl(apiMatch.homeTeam?.tla)" class="w-8 h-6 object-cover border border-slate-800 rounded-md shadow-sm" [alt]="apiMatch.homeTeam?.name" loading="lazy">
                     </div>
  
@@ -88,7 +91,10 @@ import { Match, MatchResult } from '../../models/types';
                     <!-- Visitante -->
                     <div class="flex items-center justify-start gap-3 flex-1 text-left">
                       <img [src]="getTeamFlagUrl(apiMatch.awayTeam?.tla)" class="w-8 h-6 object-cover border border-slate-800 rounded-md shadow-sm" [alt]="apiMatch.awayTeam?.name" loading="lazy">
-                      <span class="text-sm font-bold text-slate-200 truncate max-w-[120px] sm:max-w-none">{{ getTeamName(apiMatch.awayTeam?.tla) }}</span>
+                      <span class="text-sm font-bold text-slate-200 truncate max-w-[120px] sm:max-w-none">
+                        <span class="hidden sm:inline">{{ getTeamName(apiMatch.awayTeam?.tla) }}</span>
+                        <span class="inline sm:hidden">{{ getTeamAbbreviation(apiMatch.awayTeam?.tla) }}</span>
+                      </span>
                     </div>
                   </div>
  
@@ -120,7 +126,10 @@ import { Match, MatchResult } from '../../models/types';
                 <div class="flex items-center justify-between gap-2">
                   <!-- Local -->
                   <div class="flex items-center justify-end gap-2 flex-1 text-right">
-                    <span class="text-sm font-bold text-slate-200 truncate max-w-[80px] sm:max-w-none">{{ getTeamName(match.home) }}</span>
+                    <span class="text-sm font-bold text-slate-200 truncate max-w-[80px] sm:max-w-none">
+                      <span class="hidden sm:inline">{{ getTeamName(match.home) }}</span>
+                      <span class="inline sm:hidden">{{ getTeamAbbreviation(match.home) }}</span>
+                    </span>
                     <img [src]="getTeamFlagUrl(match.home)" class="w-8 h-6 object-cover border border-slate-800 rounded-md shadow-sm" [alt]="match.home" loading="lazy">
                   </div>
  
@@ -144,7 +153,10 @@ import { Match, MatchResult } from '../../models/types';
                   <!-- Visitante -->
                   <div class="flex items-center justify-start gap-2 flex-1 text-left">
                     <img [src]="getTeamFlagUrl(match.away)" class="w-8 h-6 object-cover border border-slate-800 rounded-md shadow-sm" [alt]="match.away" loading="lazy">
-                    <span class="text-sm font-bold text-slate-200 truncate max-w-[80px] sm:max-w-none">{{ getTeamName(match.away) }}</span>
+                    <span class="text-sm font-bold text-slate-200 truncate max-w-[80px] sm:max-w-none">
+                      <span class="hidden sm:inline">{{ getTeamName(match.away) }}</span>
+                      <span class="inline sm:hidden">{{ getTeamAbbreviation(match.away) }}</span>
+                    </span>
                   </div> 
                 </div>
 
@@ -204,7 +216,10 @@ import { Match, MatchResult } from '../../models/types';
                     <td class="py-3 text-left">
                       <div class="flex items-center gap-2">
                         <img [src]="getTeamFlagUrl(stand.teamId)" class="w-5 h-4 object-cover border border-slate-800/40 rounded-sm" [alt]="stand.teamId" loading="lazy">
-                        <span class="font-bold text-slate-200 truncate max-w-[80px] sm:max-w-none">{{ getTeamName(stand.teamId) }}</span>
+                        <span class="font-bold text-slate-200 truncate max-w-[80px] sm:max-w-none">
+                          <span class="hidden sm:inline">{{ getTeamName(stand.teamId) }}</span>
+                          <span class="inline sm:hidden">{{ getTeamAbbreviation(stand.teamId) }}</span>
+                        </span>
                         <button *ngIf="state.getTeamInfo(stand.teamId).sportsDbId" 
                                 (click)="state.openTeamInfo(state.getTeamInfo(stand.teamId).sportsDbId!, stand.teamId)" 
                                 class="text-slate-500 hover:text-purple-400 p-0.5 transition-colors duration-150 cursor-pointer outline-none" 
@@ -523,6 +538,15 @@ export class GroupsViewComponent {
 
   getTeamName(teamCode: string): string {
     return this.state.getTeamInfo(teamCode).name;
+  }
+
+  getTeamAbbreviation(teamCode: string): string {
+    if (!teamCode) return '';
+    const t = this.state.getTeamInfo(teamCode);
+    if (t.isPlaceholder) {
+      return t.name;
+    }
+    return this.state.normalizeTLA(teamCode);
   }
 
   getTeamFlagUrl(teamCode: string): string {
