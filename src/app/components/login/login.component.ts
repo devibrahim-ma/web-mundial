@@ -10,7 +10,7 @@ import { ProfileCarouselComponent } from '../profile-carousel/profile-carousel.c
   standalone: true,
   imports: [CommonModule, FormsModule, ProfileCarouselComponent],
   template: `
-    <div class="min-h-screen w-full flex items-center justify-center p-4 relative overflow-y-auto select-none bg-slate-950">
+    <div class="min-h-screen w-full flex items-center justify-center p-4 relative overflow-y-auto overflow-x-hidden select-none bg-slate-950 max-w-full">
       
       <!-- Ambient light effect in background -->
       <div class="fixed w-[500px] h-[500px] rounded-full bg-purple-600/10 blur-[100px] -top-40 -left-40 pointer-events-none"></div>

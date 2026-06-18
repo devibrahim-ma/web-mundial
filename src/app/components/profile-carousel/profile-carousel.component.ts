@@ -33,7 +33,9 @@ interface CarouselItem {
       </defs>
     </svg>
 
-    <div class="carousel-container relative w-full h-80 flex items-center justify-center overflow-visible select-none mt-4">
+    <div class="carousel-container relative w-full h-80 flex items-center justify-center overflow-visible select-none mt-4"
+         (touchstart)="onTouchStart($event)" 
+         (touchend)="onTouchEnd($event)">
       
       <!-- Arrow Left -->
       <button type="button" (click)="rotateLeft()" 

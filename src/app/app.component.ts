@@ -25,7 +25,7 @@ import { FRIEND_THEMES } from './constants/constants';
   ],
   template: `
     <!-- Contenedor con Fondo Dinamico -->
-    <div class="min-h-screen text-slate-100 flex flex-col font-sans transition-all duration-500 relative"
+    <div class="min-h-screen text-slate-100 flex flex-col font-sans transition-all duration-500 relative overflow-x-hidden w-full max-w-full"
          [ngStyle]="backgroundStyle()">
       
       <!-- Fondo translucido overlay para mejorar contraste -->
