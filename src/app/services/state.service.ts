@@ -69,11 +69,41 @@ export class StateService {
   readonly activeSpainMatch = computed(() => {
     const matches = this.apiMatchesList();
     if (!matches || matches.length === 0) return null;
-    return matches.find(m => {
+    
+    const espMatches = matches.filter(m => {
       const homeTLA = m.homeTeam?.tla?.toUpperCase();
       const awayTLA = m.awayTeam?.tla?.toUpperCase();
       return homeTLA === 'ESP' || awayTLA === 'ESP';
-    }) || null;
+    });
+
+    if (espMatches.length === 0) return null;
+
+    const now = new Date();
+
+    // 1. Si hay algún partido en juego o pausado, ese es el principal
+    const liveMatch = espMatches.find(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
+    if (liveMatch) return liveMatch;
+
+    // 2. Si hay algún partido hoy (o dentro del rango del evento de España: desde 1h antes hasta 3h después)
+    const activeMatch = espMatches.find(m => {
+      if (!m.utcDate) return false;
+      const matchTime = new Date(m.utcDate).getTime();
+      const diffHours = (now.getTime() - matchTime) / (1000 * 60 * 60);
+      return diffHours >= -1.0 && diffHours <= 3.0;
+    });
+    if (activeMatch) return activeMatch;
+
+    // 3. El próximo partido de España que aún no ha empezado/terminado
+    const upcomingMatch = espMatches
+      .filter(m => m.status !== 'FINISHED' && m.utcDate && new Date(m.utcDate).getTime() > now.getTime())
+      .sort((a, b) => new Date(a.utcDate).getTime() - new Date(b.utcDate).getTime())[0];
+    if (upcomingMatch) return upcomingMatch;
+
+    // 4. Si todos ya han terminado, mostramos el último que se jugó
+    const finishedMatches = espMatches
+      .filter(m => m.status === 'FINISHED' && m.utcDate)
+      .sort((a, b) => new Date(b.utcDate).getTime() - new Date(a.utcDate).getTime());
+    return finishedMatches[0] || espMatches[0];
   });
 
   // --- Computed States ---
