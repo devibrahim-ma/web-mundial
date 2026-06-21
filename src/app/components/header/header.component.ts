@@ -9,12 +9,20 @@ import { PROFILE_AVATARS } from '../../constants/constants';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
+    <!-- Banner de España en Vivo -->
+    <div *ngIf="state.isSpainEventActive()" 
+         class="w-full bg-gradient-to-r from-red-650 via-yellow-555 to-red-650 text-white text-xs font-black py-2.5 px-4 mb-4 rounded-2xl shadow-xl flex items-center justify-center gap-2 relative overflow-hidden select-none border border-red-500/30">
+      <img src="https://flagcdn.com/w40/es.png" class="w-5 h-3.5 object-cover rounded-sm shadow-sm inline animate-bounce" alt="España">
+      <span>¡EVENTO EN VIVO: JUEGA LA ROJA! Apoya a la selección y celebra cada jugada.</span>
+      <img src="https://flagcdn.com/w40/es.png" class="w-5 h-3.5 object-cover rounded-sm shadow-sm inline animate-bounce" alt="España">
+    </div>
+
     <header class="relative w-full py-4 flex flex-col items-center justify-center text-center">
       
       <!-- Logo and Title Info -->
       <div class="flex items-center gap-4 justify-center">
         <div class="relative w-20 h-20 flex items-center justify-center overflow-visible">
-          <img src="assets/ball.png" class="w-18 h-18 object-contain animate-spin-slow ball-glow" alt="Balon 2026" style="width:4.5rem;height:4.5rem;">
+          <img src="assets/ball.png" class="w-18 h-18 object-contain animate-spin-slow ball-glow" alt="Balon 2026" style="width:4.5rem;height:4.5rem;" [ngClass]="{'ball-glow-spain': state.isSpainEventActive()}">
         </div>
         <div class="text-left">
           <h1 class="text-2xl md:text-3xl font-extrabold tracking-wide leading-none">
@@ -33,6 +41,17 @@ import { PROFILE_AVATARS } from '../../constants/constants';
 
       <!-- Actions (Music, Share, Admin Actions) -->
       <div class="md:absolute md:right-0 md:top-1/2 md:-translate-y-1/2 flex flex-wrap items-center justify-center gap-3 mt-4 md:mt-0">
+        
+        <!-- Toggle Simulación España (Solo Admin) -->
+        <button *ngIf="state.userRole() === 'admin'" (click)="toggleSpainSimulation()" 
+                class="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-bold transition-all duration-200 cursor-pointer shadow-md select-none outline-none"
+                [ngClass]="state.isSpainEventSimulated() 
+                  ? 'bg-red-700 hover:bg-red-800 border-red-500 text-white shadow-red-650/20' 
+                  : 'bg-slate-900 hover:bg-slate-850 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'">
+          <img src="https://flagcdn.com/w40/es.png" class="w-4 h-3 object-cover rounded-sm inline mr-0.5" alt="España">
+          <span>{{ state.isSpainEventSimulated() ? 'Simulación Activa' : 'Simular España' }}</span>
+        </button>
+
         <!-- Music Player controls -->
         <div class="flex items-center gap-2 bg-slate-950/60 px-3 py-1.5 rounded-xl border border-slate-800 shadow-inner">
           <button (click)="toggleMusic()" class="p-1 text-slate-400 hover:text-white transition-colors duration-200" [title]="isMuted() ? 'Activar Musica' : 'Desactivar Musica'">
@@ -142,6 +161,11 @@ import { PROFILE_AVATARS } from '../../constants/constants';
       filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.7))
               drop-shadow(0 0 24px rgba(255, 255, 255, 0.35))
               drop-shadow(0 0 48px rgba(200, 200, 255, 0.2));
+    }
+    .ball-glow-spain {
+      filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.85))
+              drop-shadow(0 0 28px rgba(234, 179, 8, 0.7))
+              drop-shadow(0 0 50px rgba(239, 68, 68, 0.5)) !important;
     }
   `]
 })
@@ -280,5 +304,58 @@ export class HeaderComponent {
     this.state.updateProfileNames(this.tempProfileNames);
     this.isEditModalOpen.set(false);
     alert('Nombres guardados correctamente.');
+  }
+
+  toggleSpainSimulation() {
+    const isActivating = !this.state.isSpainEventSimulated();
+    this.state.isSpainEventSimulated.set(isActivating);
+    if (isActivating) {
+      this.playWhistleAlert();
+    }
+  }
+
+  private playWhistleAlert() {
+    try {
+      const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      
+      const playPulse = (delay: number, duration: number) => {
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(2000, ctx.currentTime + delay);
+        osc1.frequency.linearRampToValueAtTime(2040, ctx.currentTime + delay + 0.05);
+        osc1.frequency.linearRampToValueAtTime(1960, ctx.currentTime + delay + duration - 0.05);
+        
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(2150, ctx.currentTime + delay);
+        osc2.frequency.linearRampToValueAtTime(2190, ctx.currentTime + delay + 0.05);
+        osc2.frequency.linearRampToValueAtTime(2110, ctx.currentTime + delay + duration - 0.05);
+        
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + delay);
+        gainNode.gain.linearRampToValueAtTime(0.08, ctx.currentTime + delay + 0.02);
+        gainNode.gain.setValueAtTime(0.08, ctx.currentTime + delay + duration - 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+        
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        osc1.start(ctx.currentTime + delay);
+        osc2.start(ctx.currentTime + delay);
+        osc1.stop(ctx.currentTime + delay + duration);
+        osc2.stop(ctx.currentTime + delay + duration);
+      };
+      
+      playPulse(0, 0.15);
+      playPulse(0.2, 0.45);
+      
+      setTimeout(() => ctx.close(), 1000);
+    } catch (e) {
+      console.warn('Web Audio Whistle alert failed', e);
+    }
   }
 }

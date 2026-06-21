@@ -8,6 +8,7 @@ import { GroupStatsComponent } from './components/group-stats/group-stats.compon
 import { GroupsViewComponent } from './components/groups-view/groups-view.component';
 import { BracketViewComponent } from './components/bracket-view/bracket-view.component';
 import { LoginComponent } from './components/login/login.component';
+import { SpainEventComponent } from './components/spain-event/spain-event.component';
 import { FRIEND_THEMES } from './constants/constants';
 
 @Component({
@@ -21,7 +22,8 @@ import { FRIEND_THEMES } from './constants/constants';
     GroupStatsComponent,
     GroupsViewComponent,
     BracketViewComponent,
-    LoginComponent
+    LoginComponent,
+    SpainEventComponent
   ],
   template: `
     <!-- Contenedor con Fondo Dinamico -->
@@ -74,6 +76,7 @@ import { FRIEND_THEMES } from './constants/constants';
           
           <!-- Sidebar Izquierdo: Clasificacion y Estadisticas (lg:col-span-3) -->
           <aside class="lg:col-span-3 flex flex-col gap-6 w-full">
+            <app-spain-event></app-spain-event>
             <app-leaderboard></app-leaderboard>
             <app-group-stats></app-group-stats>
           </aside>

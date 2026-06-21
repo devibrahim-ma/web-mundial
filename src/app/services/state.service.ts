@@ -42,6 +42,40 @@ export class StateService {
   readonly calendarVisibleStart = signal<number | null>(null);
   readonly calendarVisibleEnd = signal<number | null>(null);
 
+  // --- Spain Event Signals ---
+  readonly isSpainEventSimulated = signal<boolean>(false);
+  readonly isSpainEventActive = computed(() => {
+    if (this.isSpainEventSimulated()) return true;
+    
+    const matches = this.apiMatchesList();
+    if (!matches || matches.length === 0) return false;
+    
+    const now = new Date();
+    return matches.some(m => {
+      const homeTLA = m.homeTeam?.tla?.toUpperCase();
+      const awayTLA = m.awayTeam?.tla?.toUpperCase();
+      if (homeTLA !== 'ESP' && awayTLA !== 'ESP') return false;
+      
+      if (m.utcDate) {
+        const matchTime = new Date(m.utcDate).getTime();
+        const diffHours = (now.getTime() - matchTime) / (1000 * 60 * 60);
+        // Activo desde 1 hora antes del inicio hasta exactamente 2 horas después del inicio
+        return diffHours >= -1.0 && diffHours <= 2.0;
+      }
+      return false;
+    });
+  });
+
+  readonly activeSpainMatch = computed(() => {
+    const matches = this.apiMatchesList();
+    if (!matches || matches.length === 0) return null;
+    return matches.find(m => {
+      const homeTLA = m.homeTeam?.tla?.toUpperCase();
+      const awayTLA = m.awayTeam?.tla?.toUpperCase();
+      return homeTLA === 'ESP' || awayTLA === 'ESP';
+    }) || null;
+  });
+
   // --- Computed States ---
 
   // Check if current user owns the active profile
