@@ -283,10 +283,10 @@ export class StateService {
       set(ref(this.db, 'mundial_global/realResults'), this.realResults()).catch(err => {
         console.error('Error al guardar resultados reales en Firebase: ', err);
       });
-    } else if (this.myProfileId() !== null && activeId === this.myProfileId()) {
+    } else if (typeof activeId === 'number' && (this.myProfileId() === activeId || this.userRole() === 'admin')) {
       // Guardar pronósticos en la sección correspondiente del perfil del usuario
       const list = this.profiles();
-      const profileIndex = list.findIndex(p => p.id === this.myProfileId());
+      const profileIndex = list.findIndex(p => p.id === activeId);
       if (profileIndex !== -1) {
         const myProfile = list[profileIndex];
         set(
@@ -296,7 +296,7 @@ export class StateService {
           console.error('Error al guardar predicciones en Firebase: ', err);
         });
       } else {
-        console.warn('No se encontró el perfil correspondiente en local para guardar predicciones de ID:', this.myProfileId());
+        console.warn('No se encontró el perfil correspondiente en local para guardar predicciones de ID:', activeId);
       }
     }
   }
@@ -400,13 +400,13 @@ export class StateService {
         current[matchId] = {
           score1,
           score2,
-          penaltyWinner: (score1 !== score2) ? undefined : current[matchId]?.penaltyWinner
+          penaltyWinner: (score1 !== score2) ? null : (current[matchId]?.penaltyWinner ?? null)
         };
       }
       this.realResults.set(current);
     } else {
       const activeId = this.activeProfileId();
-      if (typeof activeId === 'number' && this.myProfileId() === activeId) {
+      if (typeof activeId === 'number' && (this.myProfileId() === activeId || this.userRole() === 'admin')) {
         const list = [...this.profiles()];
         const p = list.find(pr => pr.id === activeId);
         if (p) {
@@ -416,7 +416,7 @@ export class StateService {
             p.predictions[matchId] = {
               score1,
               score2,
-              penaltyWinner: (score1 !== score2) ? undefined : p.predictions[matchId]?.penaltyWinner
+              penaltyWinner: (score1 !== score2) ? null : (p.predictions[matchId]?.penaltyWinner ?? null)
             };
           }
           this.profiles.set(list);
@@ -440,7 +440,7 @@ export class StateService {
       this.realResults.set(current);
     } else {
       const activeId = this.activeProfileId();
-      if (typeof activeId === 'number' && this.myProfileId() === activeId) {
+      if (typeof activeId === 'number' && (this.myProfileId() === activeId || this.userRole() === 'admin')) {
         const list = [...this.profiles()];
         const p = list.find(pr => pr.id === activeId);
         if (p) {
@@ -813,13 +813,29 @@ export class StateService {
     return thirds.slice(0, 8);
   });
 
-  // Matched thirds mapping
-  readonly matchedThirds = computed(() => {
-    const bestThirds = this.bestThirdPlacedTeams();
+  // Matched thirds mapping using Annex C combos
+  matchThirdsTeams(bestThirds: { teamId: string, groupId: string }[]): Record<string, string | null> {
+    const matched: Record<string, string | null> = {};
+    if (bestThirds.length === 8) {
+      const groups = bestThirds.map(t => t.groupId).sort().join('');
+      // Combination: B, D, E, F, I, J, K, L
+      if (groups === 'BDEFIJKL') {
+        const findByGroup = (g: string) => bestThirds.find(t => t.groupId === g)?.teamId || null;
+        matched['E'] = findByGroup('D'); // Alemania vs Paraguay
+        matched['I'] = findByGroup('F'); // Francia vs Suecia
+        matched['A'] = findByGroup('E'); // México vs Ecuador
+        matched['L'] = findByGroup('K'); // Inglaterra vs RD Congo
+        matched['G'] = findByGroup('I'); // Bélgica vs Senegal
+        matched['D'] = findByGroup('B'); // EE.UU. vs Bosnia
+        matched['B'] = findByGroup('J'); // Suiza vs Argelia
+        matched['K'] = findByGroup('L'); // Colombia vs Ghana
+        return matched;
+      }
+    }
+
+    // Naive fallback
     const winnerGroupsWithThirds = ['E', 'I', 'A', 'L', 'G', 'D', 'B', 'K'];
     const remainingThirds = [...bestThirds];
-    const matched: Record<string, string | null> = {};
-
     winnerGroupsWithThirds.forEach(wgId => {
       if (remainingThirds.length === 0) {
         matched[wgId] = null;
@@ -833,6 +849,11 @@ export class StateService {
     });
 
     return matched;
+  }
+
+  readonly matchedThirds = computed(() => {
+    const bestThirds = this.bestThirdPlacedTeams();
+    return this.matchThirdsTeams(bestThirds);
   });
 
   // Round of 32 Matches computed
@@ -877,21 +898,7 @@ export class StateService {
     const bestThirds = thirds.slice(0, 8);
 
     // Mapeo de terceros
-    const winnerGroupsWithThirds = ['E', 'I', 'A', 'L', 'G', 'D', 'B', 'K'];
-    const remainingThirds = [...bestThirds];
-    const matched: Record<string, string | null> = {};
-
-    winnerGroupsWithThirds.forEach(wgId => {
-      if (remainingThirds.length === 0) {
-        matched[wgId] = null;
-        return;
-      }
-      let index = remainingThirds.findIndex(t => t.groupId !== wgId);
-      if (index === -1) index = 0;
-
-      matched[wgId] = remainingThirds[index].teamId;
-      remainingThirds.splice(index, 1);
-    });
+    const matched = this.matchThirdsTeams(bestThirds);
 
     const getWinner = (gId: string) => isComplete(gId) ? standings[gId][0].teamId : `1º Grupo ${gId}`;
     const getRunner = (gId: string) => isComplete(gId) ? standings[gId][1].teamId : `2º Grupo ${gId}`;
