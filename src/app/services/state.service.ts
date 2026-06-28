@@ -298,22 +298,94 @@ export class StateService {
   }
 
   // --- State Mutators ---
+  isGroupStageLocked(): boolean {
+    const matches = this.apiMatchesList();
+    if (!matches || matches.length === 0) {
+      const hasAnyStarted = this.apiMatchesList().some(m => {
+        if (m.stage === 'GROUP_STAGE' && (m.status === 'FINISHED' || m.status === 'IN_PLAY' || m.status === 'PAUSED')) {
+          return true;
+        }
+        return false;
+      });
+      if (hasAnyStarted) return true;
+      return new Date() > new Date('2026-06-11T18:00:00Z');
+    }
+    const a1Match = matches.find(m => {
+      const h = this.normalizeTLA(m.homeTeam?.tla);
+      const a = this.normalizeTLA(m.awayTeam?.tla);
+      return (h === 'MEX' && a === 'RSA') || (h === 'RSA' && a === 'MEX');
+    });
+    if (a1Match?.utcDate) {
+      return new Date(a1Match.utcDate) < new Date();
+    }
+    return new Date() > new Date('2026-06-11T18:00:00Z');
+  }
+
+  isRoundStarted(roundPrefix: string): boolean {
+    let matchIds: string[] = [];
+    if (roundPrefix === 'R32') {
+      for (let i = 1; i <= 16; i++) matchIds.push(`R32-${i}`);
+    } else if (roundPrefix === 'R16') {
+      for (let i = 1; i <= 8; i++) matchIds.push(`R16-${i}`);
+    } else if (roundPrefix === 'QF') {
+      for (let i = 1; i <= 4; i++) matchIds.push(`QF-${i}`);
+    } else if (roundPrefix === 'SF') {
+      for (let i = 1; i <= 2; i++) matchIds.push(`SF-${i}`);
+    } else if (roundPrefix === 'FINAL') {
+      matchIds = ['FINAL', '3RD'];
+    }
+    return matchIds.some(mId => this.isMatchStarted(mId));
+  }
+
+  isRoundCompleted(roundPrefix: string): boolean {
+    if (roundPrefix === 'GROUPS') {
+      return this.realGroupsComplete();
+    }
+    let matchIds: string[] = [];
+    if (roundPrefix === 'R32') {
+      for (let i = 1; i <= 16; i++) matchIds.push(`R32-${i}`);
+    } else if (roundPrefix === 'R16') {
+      for (let i = 1; i <= 8; i++) matchIds.push(`R16-${i}`);
+    } else if (roundPrefix === 'QF') {
+      for (let i = 1; i <= 4; i++) matchIds.push(`QF-${i}`);
+    } else if (roundPrefix === 'SF') {
+      for (let i = 1; i <= 2; i++) matchIds.push(`SF-${i}`);
+    }
+    const real = this.realResults();
+    return matchIds.every(mId => {
+      const res = real[mId];
+      return res && res.score1 !== null && res.score2 !== null;
+    });
+  }
+
+  isMatchPredictionOpen(matchId: string): boolean {
+    if (this.isMatchStarted(matchId)) return false;
+    if (!this.isGroupStageLocked()) return true;
+
+    if (matchId.startsWith('R32-')) {
+      return this.isRoundCompleted('GROUPS') && !this.isRoundStarted('R32');
+    }
+    if (matchId.startsWith('R16-')) {
+      return this.isRoundCompleted('R32') && !this.isRoundStarted('R16');
+    }
+    if (matchId.startsWith('QF-')) {
+      return this.isRoundCompleted('R16') && !this.isRoundStarted('QF');
+    }
+    if (matchId.startsWith('SF-')) {
+      return this.isRoundCompleted('QF') && !this.isRoundStarted('SF');
+    }
+    if (matchId === '3RD' || matchId === 'FINAL') {
+      return this.isRoundCompleted('SF') && !this.isRoundStarted('FINAL');
+    }
+    return false;
+  }
+
   updateMatchScore(matchId: string, score1: number | null, score2: number | null) {
     const isAdmin = this.activeProfileId() === 'real' && this.userRole() === 'admin';
     
-    // Check lock (if match is started, users can't edit it, but admin can)
-    if (!isAdmin && this.isMatchStarted(matchId)) {
-      console.warn(`Intento de edición bloqueado para el partido ${matchId} porque ya ha comenzado.`);
+    if (!isAdmin && !this.isMatchPredictionOpen(matchId)) {
+      console.warn(`Intento de edición bloqueado para el partido ${matchId} porque no está abierto para predicción.`);
       return;
-    }
-
-    // Check lock for knockout matches deadline
-    if (!isAdmin && (matchId.startsWith('R32-') || matchId.startsWith('R16-') || matchId.startsWith('QF-') || matchId.startsWith('SF-') || matchId === '3RD' || matchId === 'FINAL')) {
-      const deadline = this.knockoutDeadline();
-      if (Date.now() > deadline.getTime()) {
-        console.warn(`Intento de edición bloqueado para eliminatorias porque ha pasado la fecha límite.`);
-        return;
-      }
     }
 
     if (isAdmin) {
@@ -352,12 +424,9 @@ export class StateService {
 
   setPenaltyWinner(matchId: string, winnerIndex: number) {
     const isAdmin = this.activeProfileId() === 'real' && this.userRole() === 'admin';
-    if (!isAdmin && (matchId.startsWith('R32-') || matchId.startsWith('R16-') || matchId.startsWith('QF-') || matchId.startsWith('SF-') || matchId === '3RD' || matchId === 'FINAL')) {
-      const deadline = this.knockoutDeadline();
-      if (Date.now() > deadline.getTime()) {
-        console.warn(`Intento de edición de penalti bloqueado porque ha pasado la fecha límite.`);
-        return;
-      }
+    if (!isAdmin && !this.isMatchPredictionOpen(matchId)) {
+      console.warn(`Intento de edición de penalti bloqueado para ${matchId} porque no está abierto para predicción.`);
+      return;
     }
 
     if (isAdmin) {
@@ -824,22 +893,22 @@ export class StateService {
     const getThird = (wgId: string) => allComplete ? (matched[wgId] || '3º Clasificado') : `3º Clasificado`;
 
     return [
-      { id: "R32-1", home: getRunner('A'), away: getRunner('B'), label: "R32 Partido 1" },
-      { id: "R32-2", home: getWinner('C'), away: getRunner('F'), label: "R32 Partido 2" },
-      { id: "R32-3", home: getWinner('E'), away: getThird('E'), label: "R32 Partido 3" },
-      { id: "R32-4", home: getWinner('F'), away: getRunner('C'), label: "R32 Partido 4" },
-      { id: "R32-5", home: getRunner('E'), away: getRunner('I'), label: "R32 Partido 5" },
-      { id: "R32-6", home: getWinner('I'), away: getThird('I'), label: "R32 Partido 6" },
-      { id: "R32-7", home: getWinner('A'), away: getThird('A'), label: "R32 Partido 7" },
-      { id: "R32-8", home: getWinner('L'), away: getThird('L'), label: "R32 Partido 8" },
-      { id: "R32-9", home: getWinner('G'), away: getThird('G'), label: "R32 Partido 9" },
-      { id: "R32-10", home: getWinner('D'), away: getThird('D'), label: "R32 Partido 10" },
-      { id: "R32-11", home: getWinner('H'), away: getRunner('J'), label: "R32 Partido 11" },
-      { id: "R32-12", home: getRunner('K'), away: getRunner('L'), label: "R32 Partido 12" },
-      { id: "R32-13", home: getWinner('B'), away: getThird('B'), label: "R32 Partido 13" },
-      { id: "R32-14", home: getRunner('D'), away: getRunner('G'), label: "R32 Partido 14" },
-      { id: "R32-15", home: getWinner('J'), away: getRunner('H'), label: "R32 Partido 15" },
-      { id: "R32-16", home: getWinner('K'), away: getThird('K'), label: "R32 Partido 16" }
+      { id: "R32-1", home: getWinner('E'), away: getThird('E'), label: "R32 Partido 1" },   // Match 74: GER vs PAR
+      { id: "R32-2", home: getWinner('I'), away: getThird('I'), label: "R32 Partido 2" },   // Match 77: FRA vs SWE
+      { id: "R32-3", home: getRunner('A'), away: getRunner('B'), label: "R32 Partido 3" }, // Match 73: RSA vs CAN
+      { id: "R32-4", home: getWinner('F'), away: getRunner('C'), label: "R32 Partido 4" },  // Match 75: NED vs MAR
+      { id: "R32-5", home: getRunner('K'), away: getRunner('L'), label: "R32 Partido 5" }, // Match 83: POR vs CRO
+      { id: "R32-6", home: getWinner('H'), away: getRunner('J'), label: "R32 Partido 6" }, // Match 84: ESP vs AUT
+      { id: "R32-7", home: getWinner('D'), away: getThird('D'), label: "R32 Partido 7" },   // Match 81: USA vs BIH
+      { id: "R32-8", home: getWinner('G'), away: getThird('G'), label: "R32 Partido 8" },   // Match 82: BEL vs SEN
+      { id: "R32-9", home: getWinner('C'), away: getRunner('F'), label: "R32 Partido 9" },   // Match 76: BRA vs JPN
+      { id: "R32-10", home: getRunner('E'), away: getRunner('I'), label: "R32 Partido 10" }, // Match 78: CIV vs NOR
+      { id: "R32-11", home: getWinner('A'), away: getThird('A'), label: "R32 Partido 11" }, // Match 79: MEX vs ECU
+      { id: "R32-12", home: getWinner('L'), away: getThird('L'), label: "R32 Partido 12" }, // Match 80: ENG vs COD
+      { id: "R32-13", home: getWinner('J'), away: getRunner('H'), label: "R32 Partido 13" }, // Match 86: ARG vs CPV
+      { id: "R32-14", home: getRunner('D'), away: getRunner('G'), label: "R32 Partido 14" }, // Match 88: AUS vs EGY
+      { id: "R32-15", home: getWinner('B'), away: getThird('B'), label: "R32 Partido 15" }, // Match 85: SUI vs ALG
+      { id: "R32-16", home: getWinner('K'), away: getThird('K'), label: "R32 Partido 16" }  // Match 87: COL vs GHA
     ];
   });
 
@@ -851,11 +920,15 @@ export class StateService {
     }
 
     const resolveWinner = (mId: string) => {
+      const realW = this.getKnockoutWinner(mId, 'real');
+      if (realW) return realW;
       const w = this.getKnockoutWinner(mId, activeId);
       return w ? w : `Ganador ${this.getMatchLabel(mId)}`;
     };
 
     const resolveLoser = (mId: string) => {
+      const realL = this.getKnockoutLoser(mId, 'real');
+      if (realL) return realL;
       const l = this.getKnockoutLoser(mId, activeId);
       return l ? l : `Perdedor ${this.getMatchLabel(mId)}`;
     };
@@ -1159,6 +1232,51 @@ export class StateService {
     return standingsArray;
   }
 
+  getKnockoutPoints(mId: string, profileId: number | 'real' | 'calendar'): number {
+    const real = this.realResults()[mId];
+    if (!real || real.score1 === null || real.score2 === null) return 0;
+
+    let pred: MatchResult | undefined;
+    if (profileId === 'real' || profileId === 'calendar') {
+      pred = real;
+    } else {
+      const p = this.profiles().find(pr => pr.id === profileId);
+      pred = p?.predictions[mId];
+    }
+
+    if (!pred || pred.score1 === null || pred.score2 === null) return 0;
+
+    const p1 = Number(pred.score1);
+    const p2 = Number(pred.score2);
+    const r1 = Number(real.score1);
+    const r2 = Number(real.score2);
+
+    const isScoreExact = p1 === r1 && p2 === r2;
+    const predWinner = this.getKnockoutWinner(mId, profileId);
+    const realWinner = this.getKnockoutWinner(mId, 'real');
+    const isWinnerCorrect = predWinner && realWinner && predWinner === realWinner;
+
+    if (isScoreExact) {
+      if (p1 === p2) {
+        return isWinnerCorrect ? 4 : 2;
+      }
+      return 3;
+    }
+
+    const isPredDraw = p1 === p2;
+    const isRealDraw = r1 === r2;
+
+    if (isPredDraw && isRealDraw) {
+      return isWinnerCorrect ? 2 : 1;
+    }
+
+    if (isWinnerCorrect) {
+      return 1;
+    }
+
+    return 0;
+  }
+
   // --- Leaderboard Scoring Signal ---
   readonly leaderboard = computed<LeaderboardItem[]>(() => {
     const list: LeaderboardItem[] = [];
@@ -1217,36 +1335,21 @@ export class StateService {
 
       // 2. Knockouts
       koMatchIds.forEach(mId => {
+        const pts = this.getKnockoutPoints(mId, profile.id);
+        points += pts;
+
         const pred = profile.predictions[mId];
         const real = realRes[mId];
-
         const hasPred = pred && pred.score1 !== null && pred.score2 !== null;
         const hasReal = real && real.score1 !== null && real.score2 !== null;
 
         if (hasPred && hasReal) {
-          const p1 = Number(pred.score1);
-          const p2 = Number(pred.score2);
-          const r1 = Number(real.score1);
-          const r2 = Number(real.score2);
-
-          let isExact = p1 === r1 && p2 === r2;
-          if (isExact && p1 === p2) {
-            isExact = (pred.penaltyWinner === real.penaltyWinner);
-          }
-
-          if (isExact) {
-            points += 3;
+          if (pts >= 3) {
             perfectCount++;
+          } else if (pts >= 1) {
+            outcomeCount++;
           } else {
-            const predWinner = this.getKnockoutWinner(mId, profile.id);
-            const realWinner = this.getKnockoutWinner(mId, 'real');
-
-            if (predWinner && realWinner && predWinner === realWinner) {
-              points += 1;
-              outcomeCount++;
-            } else {
-              failCount++;
-            }
+            failCount++;
           }
         } else if (hasReal) {
           failCount++;

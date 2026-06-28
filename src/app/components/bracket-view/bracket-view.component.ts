@@ -351,15 +351,16 @@ export class BracketViewComponent implements AfterViewInit, OnDestroy {
   }
 
   isMatchApiStarted(matchId: string): boolean {
-    return this.state.isMatchStarted(matchId);
+    if (this.state.userRole() === 'admin') return false;
+    return !this.state.isMatchPredictionOpen(matchId);
   }
 
   // Penalty selection checks
   isPenaltySelectable(matchId: string, pos: 1 | 2): boolean {
-    // Selectable only if score is a draw (score1 === score2) and not empty, and current client is editable/admin
-    if (this.state.userRole() !== 'admin') return false; // In this app, only admin sets penalty winner for real results, or for predictions?
-    // Wait, state.isEditable is also for user profile
     if (!this.state.isEditable()) return false;
+
+    const isAdmin = this.state.activeProfileId() === 'real' && this.state.userRole() === 'admin';
+    if (!isAdmin && !this.state.isMatchPredictionOpen(matchId)) return false;
 
     const v1 = this.getScoreVal(matchId, 1);
     const v2 = this.getScoreVal(matchId, 2);
@@ -422,47 +423,42 @@ export class BracketViewComponent implements AfterViewInit, OnDestroy {
   }
 
   getFeedbackPointsText(matchId: string): string {
+    const pts = this.state.getKnockoutPoints(matchId, this.state.activeProfileId());
     const pred1Str = this.getScoreVal(matchId, 1);
     const pred2Str = this.getScoreVal(matchId, 2);
     if (pred1Str === '' || pred2Str === '') return '0 pts';
 
-    const p1 = Number(pred1Str);
-    const p2 = Number(pred2Str);
-
-    const real = this.state.realResults()[matchId];
-    if (real && real.score1 !== null && real.score2 !== null) {
-      const r1 = Number(real.score1);
-      const r2 = Number(real.score2);
-
-      let isPerfect = (p1 === r1 && p2 === r2);
-      
-      // If penalty draw, check penalty winner
-      if (isPerfect && p1 === p2) {
-        const activeProfile = this.state.activeProfileId();
-        let penaltyWinner: number | null = null;
-        if (typeof activeProfile === 'number') {
-          const p = this.state.profiles().find(pr => pr.id === activeProfile);
-          if (p && p.predictions[matchId]) {
-            penaltyWinner = p.predictions[matchId].penaltyWinner ?? null;
-          }
-        }
-        isPerfect = (penaltyWinner === real.penaltyWinner);
+    if (pts === 4) return '+4 Exacto';
+    if (pts === 3) return '+3 Exacto';
+    if (pts === 2) {
+      const p1 = Number(pred1Str);
+      const p2 = Number(pred2Str);
+      const real = this.state.realResults()[matchId];
+      const r1 = real ? Number(real.score1) : 0;
+      const r2 = real ? Number(real.score2) : 0;
+      if (p1 === r1 && p2 === r2) {
+        return '+2 Empate';
       }
-
-      if (isPerfect) return '+3 Exacto';
-
-      const predWinner = this.state.getKnockoutWinner(matchId, this.state.activeProfileId());
-      const realWinner = this.state.getKnockoutWinner(matchId, 'real');
-
-      if (predWinner && realWinner && predWinner === realWinner) return '+1 Ganador';
+      return '+2 Ganador';
     }
-
+    if (pts === 1) {
+      const p1 = Number(pred1Str);
+      const p2 = Number(pred2Str);
+      const real = this.state.realResults()[matchId];
+      const r1 = real ? Number(real.score1) : 0;
+      const r2 = real ? Number(real.score2) : 0;
+      if (p1 === p2 && r1 === r2) {
+        return '+1 Empate';
+      }
+      return '+1 Ganador';
+    }
     return '0 pts';
   }
 
   getFeedbackPointsClass(matchId: string): string {
     const text = this.getFeedbackPointsText(matchId);
-    if (text.startsWith('+3')) return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+    if (text.startsWith('+4') || text.startsWith('+3')) return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+    if (text.startsWith('+2')) return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
     if (text.startsWith('+1')) return 'bg-amber-500/10 text-amber-400 border border-amber-500/20';
     return 'bg-red-500/10 text-red-400 border border-red-500/20';
   }

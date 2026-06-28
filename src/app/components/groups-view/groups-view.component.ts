@@ -323,7 +323,8 @@ export class GroupsViewComponent {
   }
 
   isMatchApiStarted(matchId: string): boolean {
-    return this.state.isMatchStarted(matchId);
+    if (this.state.userRole() === 'admin') return false;
+    return this.state.isGroupStageLocked() || this.state.isMatchStarted(matchId);
   }
 
   getMatchScheduleText(matchId: string): string {

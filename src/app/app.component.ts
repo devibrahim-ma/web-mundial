@@ -9,6 +9,7 @@ import { GroupsViewComponent } from './components/groups-view/groups-view.compon
 import { BracketViewComponent } from './components/bracket-view/bracket-view.component';
 import { LoginComponent } from './components/login/login.component';
 import { SpainEventComponent } from './components/spain-event/spain-event.component';
+import { KnockoutWelcomeComponent } from './components/knockout-welcome/knockout-welcome.component';
 import { FRIEND_THEMES } from './constants/constants';
 
 @Component({
@@ -23,7 +24,8 @@ import { FRIEND_THEMES } from './constants/constants';
     GroupsViewComponent,
     BracketViewComponent,
     LoginComponent,
-    SpainEventComponent
+    SpainEventComponent,
+    KnockoutWelcomeComponent
   ],
   template: `
     <!-- Contenedor con Fondo Dinamico -->
@@ -71,9 +73,8 @@ import { FRIEND_THEMES } from './constants/constants';
           </div>
         </div>
 
-        <!-- Layout Central -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
+        <!-- Layout Central para Fase de Grupos o Calendario -->
+        <div *ngIf="state.activePhase() === 'groups' || state.activeProfileId() === 'calendar'" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <!-- Sidebar Izquierdo: Clasificacion y Estadisticas (lg:col-span-3) -->
           <aside class="lg:col-span-3 flex flex-col gap-6 w-full">
             <app-spain-event></app-spain-event>
@@ -83,13 +84,29 @@ import { FRIEND_THEMES } from './constants/constants';
 
           <!-- Seccion Principal: Contenido de Predicciones (lg:col-span-9) -->
           <main class="lg:col-span-9 w-full">
-            <!-- Pestaña de Fase de Grupos o Calendario -->
-            <app-groups-view *ngIf="state.activePhase() === 'groups' || state.activeProfileId() === 'calendar'"></app-groups-view>
-            
-            <!-- Pestaña de Fase Final (Bracket) -->
-            <app-bracket-view *ngIf="state.activePhase() === 'knockouts' && state.activeProfileId() !== 'calendar'"></app-bracket-view>
+            <app-groups-view></app-groups-view>
           </main>
+        </div>
 
+        <!-- Layout Central para Fase Final (Eliminatorias) - Ancho Completo -->
+        <div *ngIf="state.activePhase() === 'knockouts' && state.activeProfileId() !== 'calendar'" class="flex flex-col gap-6 w-full">
+          <!-- Fila Superior: Sidebar a la izquierda (3 cols) y Banner a la derecha (9 cols) -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            
+            <!-- Sidebar Izquierdo -->
+            <aside class="lg:col-span-3 flex flex-col gap-6 w-full">
+              <app-spain-event></app-spain-event>
+              <app-leaderboard></app-leaderboard>
+              <app-group-stats></app-group-stats>
+            </aside>
+
+            <!-- Banner de Puntuaciones a la Derecha -->
+            <app-knockout-welcome class="lg:col-span-9 w-full flex"></app-knockout-welcome>
+
+          </div>
+
+          <!-- Pestaña de Fase Final (Bracket) a ancho completo -->
+          <app-bracket-view class="w-full"></app-bracket-view>
         </div>
 
       </div>
