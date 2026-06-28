@@ -201,6 +201,33 @@ export class StateService {
 
         this.profiles.set(mappedProfiles);
         this.isInitialized.set(true);
+
+        // Self-healing session alignment or logout if invalid
+        const myId = this.myProfileId();
+        if (this.isLoggedIn() && myId !== null) {
+          const exists = mappedProfiles.some((p: any) => p.id === myId);
+          if (!exists) {
+            console.warn(`Logged-in profile ID ${myId} not found in database profiles. Attempting self-healing...`);
+            const savedName = localStorage.getItem(`wc2026_my_profile_name_${this.groupId}`);
+            let healed = false;
+            if (savedName) {
+              const matchedProfile = mappedProfiles.find((p: any) => p.name.toLowerCase() === savedName.toLowerCase());
+              if (matchedProfile) {
+                console.log(`Self-healing: Matched profile name "${savedName}" to new ID ${matchedProfile.id}. Updating session...`);
+                this.myProfileId.set(matchedProfile.id);
+                if (this.activeProfileId() === myId) {
+                  this.activeProfileId.set(matchedProfile.id);
+                }
+                localStorage.setItem(`wc2026_my_profile_id_${this.groupId}`, String(matchedProfile.id));
+                healed = true;
+              }
+            }
+            if (!healed) {
+              console.warn('Could not self-heal profile session. Logging out.');
+              this.logout();
+            }
+          }
+        }
       }
     });
   }
@@ -482,6 +509,9 @@ export class StateService {
       this.isLoggedIn.set(true);
       this.activeProfileId.set(profile.id);
 
+      // Save name to localStorage for session alignment self-healing
+      localStorage.setItem(`wc2026_my_profile_name_${this.groupId}`, profile.name);
+
       if (rememberMe) {
         localStorage.setItem(`wc2026_remember_me_${this.groupId}`, 'true');
         localStorage.setItem(`wc2026_my_profile_id_${this.groupId}`, String(profile.id));
@@ -512,6 +542,8 @@ export class StateService {
           ref(this.db, `groups/${this.groupId}/profiles/${profileIndex}/password`),
           password
         );
+        // Save name to localStorage for self-healing
+        localStorage.setItem(`wc2026_my_profile_name_${this.groupId}`, p.name);
         this.login(profileId, password, true);
         return true;
       } catch (err) {
@@ -530,6 +562,7 @@ export class StateService {
 
     localStorage.removeItem(`wc2026_remember_me_${this.groupId}`);
     localStorage.removeItem(`wc2026_my_profile_id_${this.groupId}`);
+    localStorage.removeItem(`wc2026_my_profile_name_${this.groupId}`);
     localStorage.removeItem('wc2026_role');
     sessionStorage.removeItem(`wc2026_logged_in_${this.groupId}`);
   }
@@ -544,7 +577,8 @@ export class StateService {
       list.push({
         id: idx,
         name: name.trim(),
-        predictions: existing ? existing.predictions : {}
+        predictions: existing ? existing.predictions : {},
+        password: existing ? existing.password : undefined
       });
     });
 
