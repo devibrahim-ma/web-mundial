@@ -10,8 +10,28 @@ import { LeaderboardItem } from '../../models/types';
   imports: [CommonModule],
   template: `
     <div class="bg-slate-900/30 backdrop-blur-md border border-slate-800/60 rounded-2xl p-5 shadow-xl transition-all duration-300">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
-        <h2 class="text-lg font-bold text-white tracking-wide">Clasificacion</h2>
+      <div class="flex flex-col gap-3 border-b border-slate-800 pb-4 mb-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-white tracking-wide">Clasificación</h2>
+        </div>
+        <!-- Pestañas de Clasificación -->
+        <div class="flex bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
+          <button (click)="state.leaderboardTab.set('general')"
+                  class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer"
+                  [ngClass]="state.leaderboardTab() === 'general' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'">
+            General
+          </button>
+          <button (click)="state.leaderboardTab.set('groups')"
+                  class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer"
+                  [ngClass]="state.leaderboardTab() === 'groups' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'">
+            Grupos
+          </button>
+          <button (click)="state.leaderboardTab.set('knockouts')"
+                  class="flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer"
+                  [ngClass]="state.leaderboardTab() === 'knockouts' ? 'bg-purple-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'">
+            Fase Final
+          </button>
+        </div>
       </div>
       
       <div class="overflow-x-auto">
@@ -25,7 +45,7 @@ import { LeaderboardItem } from '../../models/types';
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/40">
-            <tr *ngFor="let item of state.leaderboard(); let idx = index" 
+            <tr *ngFor="let item of state.activeLeaderboard(); let idx = index" 
                 (click)="selectProfile(item.id)"
                 class="hover:bg-slate-800/40 transition-colors duration-150 cursor-pointer group rounded-lg"
                 [ngClass]="{

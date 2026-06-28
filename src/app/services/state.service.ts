@@ -28,6 +28,7 @@ export class StateService {
   readonly isInitialized = signal<boolean>(false);
   readonly isLoggedIn = signal<boolean>(false);
   readonly knockoutDeadline = signal<Date>(new Date('2026-06-27T18:00:00Z'));
+  readonly leaderboardTab = signal<'general' | 'groups' | 'knockouts'>('general');
 
   // --- Teams Info Modal Signals ---
   readonly isTeamInfoModalOpen = signal<boolean>(false);
@@ -1323,8 +1324,7 @@ export class StateService {
     return 0;
   }
 
-  // --- Leaderboard Scoring Signal ---
-  readonly leaderboard = computed<LeaderboardItem[]>(() => {
+  private calculateLeaderboardForPhase(phase: 'general' | 'groups' | 'knockouts'): LeaderboardItem[] {
     const list: LeaderboardItem[] = [];
     const koMatchIds: string[] = [];
     for (let i = 1; i <= 16; i++) koMatchIds.push(`R32-${i}`);
@@ -1343,64 +1343,68 @@ export class StateService {
       let failCount = 0;
 
       // 1. Group Stage
-      for (const groupId in MATCHES) {
-        MATCHES[groupId].forEach(match => {
-          const pred = profile.predictions[match.id];
-          const real = realRes[match.id];
+      if (phase === 'general' || phase === 'groups') {
+        for (const groupId in MATCHES) {
+          MATCHES[groupId].forEach(match => {
+            const pred = profile.predictions[match.id];
+            const real = realRes[match.id];
 
+            const hasPred = pred && pred.score1 !== null && pred.score2 !== null;
+            const hasReal = real && real.score1 !== null && real.score2 !== null;
+
+            if (hasPred && hasReal) {
+              const p1 = Number(pred.score1);
+              const p2 = Number(pred.score2);
+              const r1 = Number(real.score1);
+              const r2 = Number(real.score2);
+
+              if (p1 === r1 && p2 === r2) {
+                points += 3;
+                perfectCount++;
+              } else {
+                const predDiff = p1 - p2;
+                const realDiff = r1 - r2;
+                const predOutcome = predDiff > 0 ? 1 : (predDiff < 0 ? -1 : 0);
+                const realOutcome = realDiff > 0 ? 1 : (realDiff < 0 ? -1 : 0);
+
+                if (predOutcome === realOutcome) {
+                  points += 1;
+                  outcomeCount++;
+                } else {
+                  failCount++;
+                }
+              }
+            } else if (hasReal) {
+              failCount++;
+            }
+          });
+        }
+      }
+
+      // 2. Knockouts
+      if (phase === 'general' || phase === 'knockouts') {
+        koMatchIds.forEach(mId => {
+          const pts = this.getKnockoutPoints(mId, profile.id);
+          points += pts;
+
+          const pred = profile.predictions[mId];
+          const real = realRes[mId];
           const hasPred = pred && pred.score1 !== null && pred.score2 !== null;
           const hasReal = real && real.score1 !== null && real.score2 !== null;
 
           if (hasPred && hasReal) {
-            const p1 = Number(pred.score1);
-            const p2 = Number(pred.score2);
-            const r1 = Number(real.score1);
-            const r2 = Number(real.score2);
-
-            if (p1 === r1 && p2 === r2) {
-              points += 3;
+            if (pts >= 3) {
               perfectCount++;
+            } else if (pts >= 1) {
+              outcomeCount++;
             } else {
-              const predDiff = p1 - p2;
-              const realDiff = r1 - r2;
-              const predOutcome = predDiff > 0 ? 1 : (predDiff < 0 ? -1 : 0);
-              const realOutcome = realDiff > 0 ? 1 : (realDiff < 0 ? -1 : 0);
-
-              if (predOutcome === realOutcome) {
-                points += 1;
-                outcomeCount++;
-              } else {
-                failCount++;
-              }
+              failCount++;
             }
           } else if (hasReal) {
             failCount++;
           }
         });
       }
-
-      // 2. Knockouts
-      koMatchIds.forEach(mId => {
-        const pts = this.getKnockoutPoints(mId, profile.id);
-        points += pts;
-
-        const pred = profile.predictions[mId];
-        const real = realRes[mId];
-        const hasPred = pred && pred.score1 !== null && pred.score2 !== null;
-        const hasReal = real && real.score1 !== null && real.score2 !== null;
-
-        if (hasPred && hasReal) {
-          if (pts >= 3) {
-            perfectCount++;
-          } else if (pts >= 1) {
-            outcomeCount++;
-          } else {
-            failCount++;
-          }
-        } else if (hasReal) {
-          failCount++;
-        }
-      });
 
       list.push({
         id: profile.id,
@@ -1419,6 +1423,26 @@ export class StateService {
     });
 
     return list;
+  }
+
+  // --- Leaderboard Scoring Signals ---
+  readonly leaderboard = computed<LeaderboardItem[]>(() => {
+    return this.calculateLeaderboardForPhase('general');
+  });
+
+  readonly leaderboardGroups = computed<LeaderboardItem[]>(() => {
+    return this.calculateLeaderboardForPhase('groups');
+  });
+
+  readonly leaderboardKnockouts = computed<LeaderboardItem[]>(() => {
+    return this.calculateLeaderboardForPhase('knockouts');
+  });
+
+  readonly activeLeaderboard = computed<LeaderboardItem[]>(() => {
+    const tab = this.leaderboardTab();
+    if (tab === 'groups') return this.leaderboardGroups();
+    if (tab === 'knockouts') return this.leaderboardKnockouts();
+    return this.leaderboard();
   });
 
   normalizeTLA(tla: string | undefined): string {
