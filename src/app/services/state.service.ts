@@ -285,14 +285,18 @@ export class StateService {
       });
     } else if (this.myProfileId() !== null && activeId === this.myProfileId()) {
       // Guardar pronósticos en la sección correspondiente del perfil del usuario
-      const myProfile = this.profiles()[this.myProfileId() as number];
-      if (myProfile) {
+      const list = this.profiles();
+      const profileIndex = list.findIndex(p => p.id === this.myProfileId());
+      if (profileIndex !== -1) {
+        const myProfile = list[profileIndex];
         set(
-          ref(this.db, `groups/${this.groupId}/profiles/${this.myProfileId()}/predictions`),
+          ref(this.db, `groups/${this.groupId}/profiles/${profileIndex}/predictions`),
           myProfile.predictions || {}
         ).catch(err => {
           console.error('Error al guardar predicciones en Firebase: ', err);
         });
+      } else {
+        console.warn('No se encontró el perfil correspondiente en local para guardar predicciones de ID:', this.myProfileId());
       }
     }
   }
@@ -495,8 +499,9 @@ export class StateService {
 
   async registerPassword(profileId: number, password: string): Promise<boolean> {
     const list = [...this.profiles()];
-    const p = list.find(pr => pr.id === profileId);
-    if (p) {
+    const profileIndex = list.findIndex(pr => pr.id === profileId);
+    if (profileIndex !== -1) {
+      const p = list[profileIndex];
       if (p.password) {
         return false;
       }
@@ -504,7 +509,7 @@ export class StateService {
       this.profiles.set(list);
       try {
         await set(
-          ref(this.db, `groups/${this.groupId}/profiles/${profileId}/password`),
+          ref(this.db, `groups/${this.groupId}/profiles/${profileIndex}/password`),
           password
         );
         this.login(profileId, password, true);
